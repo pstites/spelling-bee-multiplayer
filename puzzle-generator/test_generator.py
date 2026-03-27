@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Nathaniel Page Stites
+# All rights reserved.
+
 from generator import generate_puzzle, load_wordlist
 from datetime import date, timedelta
 

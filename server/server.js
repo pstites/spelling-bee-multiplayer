@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Nathaniel Page Stites
+// All rights reserved.
+
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");

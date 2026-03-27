@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Nathaniel Page Stites
+# All rights reserved.
+
 import random
 import json
 import sys
