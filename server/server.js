@@ -44,10 +44,7 @@ function getPuzzle() {
       __dirname,
       "../puzzle-generator/generator.py"
     );
-    const pythonPath = path.join(
-      __dirname,
-      "../puzzle-generator/venv/bin/python3"
-    );
+    const pythonPath = process.env.PYTHON_PATH || "python3";
 
     execFile(pythonPath, [generatorPath, "--json"], (err, stdout, stderr) => {
       if (err) {
