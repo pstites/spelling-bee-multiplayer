@@ -360,7 +360,16 @@ if (existingEntry && room.paused && room.disconnectedPlayer === playerName) {
 app.use(express.static(path.join(__dirname, "../client")));
 
 app.get("/health", (req, res) => {
-    res.json({ status: "ok", activeRooms: Object.keys(rooms).length });
+  res.json({ status: "ok", activeRooms: Object.keys(rooms).length });
+});
+
+app.get("/test-puzzle", async (req, res) => {
+  try {
+    const puzzle = await getPuzzle();
+    res.json({ success: true, wordCount: puzzle.word_count, center: puzzle.center });
+  } catch (err) {
+    res.json({ success: false, error: err.message, stack: err.stack });
+  }
 });
 
 // ── Start server ──────────────────────────────────────────────────────────────
