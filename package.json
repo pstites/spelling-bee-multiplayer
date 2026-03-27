@@ -3,6 +3,6 @@
   "version": "1.0.0",
   "scripts": {
     "start": "cd server && node server.js",
-    "install": "cd server && npm install"
+    "build": "pip3 install -r puzzle-generator/requirements.txt"
   }
 }
