@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Server Test</title>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <style>
+    body { font-family: monospace; padding: 20px; max-width: 800px; }
+    button { margin: 4px; padding: 6px 12px; cursor: pointer; }
+    #log { background: #f4f4f4; padding: 12px; margin-top: 16px; 
+           height: 400px; overflow-y: auto; border: 1px solid #ccc; }
+    .success { color: green; }
+    .error { color: red; }
+    .event { color: #2C5F8A; }
+  </style>
+</head>
+<body>
+  <h2>Spelling Bee Server Test</h2>
+
+  <div>
+    <strong>Player 1 (this tab):</strong>
+    <input id="p1name" value="Alice" style="width:100px">
+    <button onclick="createRoom()">Create Room</button>
+  </div>
+
+  <div style="margin-top:8px">
+    <strong>Room code:</strong>
+    <input id="roomCode" placeholder="e.g. KQZT" style="width:80px">
+    <input id="p2name" value="Bob" style="width:100px">
+    <button onclick="joinRoom()">Join Room (simulates Player 2)</button>
+  </div>
+
+  <div style="margin-top:8px">
+    <input id="wordInput" placeholder="enter a word" style="width:120px">
+    <button onclick="submitWord()">Submit Word</button>
+    <button onclick="toggleMode()">Toggle Mode</button>
+  </div>
+
+  <div style="margin-top:8px">
+    <button onclick="clearLog()">Clear Log</button>
+  </div>
+
+  <div id="log"></div>
+
+  <script>
+    // Two sockets to simulate two players in the same browser tab
+    const socket1 = io("http://localhost:3000");
+    const socket2 = io("http://localhost:3000");
+
+    let currentRoom = null;
+    let puzzle = null;
+
+    function log(msg, type = "") {
+      const div = document.getElementById("log");
+      const line = document.createElement("div");
+      line.className = type;
+      line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      div.appendChild(line);
+      div.scrollTop = div.scrollHeight;
+    }
+
+    function clearLog() {
+      document.getElementById("log").innerHTML = "";
+    }
+
+    // ── Socket 1 events ──────────────────────────────────────────────────────
+    socket1.on("connect", () => log("Player 1 connected: " + socket1.id, "success"));
+    socket1.on("opponent_joined", (data) => log(`[S1 event] opponent_joined: ${data.playerName}`, "event"));
+    socket1.on("players_ready", (data) => log(`[S1 event] players_ready: ${data.players.map(p=>p.name).join(", ")}`, "event"));
+    socket1.on("word_found", (data) => log(`[S1 event] word_found: "${data.word}" by ${data.playerName} (+${data.score}pts) scores: ${JSON.stringify(data.scores)}`, "event"));
+    socket1.on("pangram_found", (data) => log(`[S1 event] 🎉 PANGRAM: "${data.word}" by ${data.playerName}`, "event"));
+    socket1.on("mode_changed", (data) => log(`[S1 event] mode_changed: ${data.mode}`, "event"));
+    socket1.on("game_paused", (data) => log(`[S1 event] game_paused: ${data.playerName} disconnected`, "event"));
+    socket1.on("game_resumed", (data) => log(`[S1 event] game_resumed: ${data.playerName} rejoined`, "event"));
+    socket1.on("session_ended", (data) => log(`[S1 event] session_ended: ${data.reason}`, "error"));
+
+    // ── Socket 2 events ──────────────────────────────────────────────────────
+    socket2.on("connect", () => log("Player 2 connected: " + socket2.id, "success"));
+    socket2.on("players_ready", (data) => log(`[S2 event] players_ready: ${data.players.map(p=>p.name).join(", ")}`, "event"));
+    socket2.on("word_found", (data) => log(`[S2 event] word_found: "${data.word}" by ${data.playerName} (+${data.score}pts)`, "event"));
+    socket2.on("pangram_found", (data) => log(`[S2 event] 🎉 PANGRAM: "${data.word}" by ${data.playerName}`, "event"));
+    socket2.on("mode_changed", (data) => log(`[S2 event] mode_changed: ${data.mode}, scores: ${JSON.stringify(data.scores)}`, "event"));
+    socket2.on("game_paused", (data) => log(`[S2 event] game_paused: ${data.playerName} disconnected`, "event"));
+    socket2.on("game_resumed", (data) => log(`[S2 event] game_resumed: ${data.playerName} rejoined`, "event"));
+    socket2.on("session_ended", (data) => log(`[S2 event] session_ended: ${data.reason}`, "error"));
+
+    // ── Actions ──────────────────────────────────────────────────────────────
+    function createRoom() {
+      const playerName = document.getElementById("p1name").value;
+      socket1.emit("create_room", { playerName, mode: "collaborative" }, (res) => {
+        if (res.success) {
+          currentRoom = res.roomCode;
+          puzzle = res.puzzle;
+          document.getElementById("roomCode").value = res.roomCode;
+          log(`Room created: ${res.roomCode} | Letters: ${res.puzzle.letters.join(" ").toUpperCase()} | Center: ${res.puzzle.center.toUpperCase()}`, "success");
+        } else {
+          log("create_room failed: " + res.error, "error");
+        }
+      });
+    }
+
+    function joinRoom() {
+      const code = document.getElementById("roomCode").value.toUpperCase();
+      const playerName = document.getElementById("p2name").value;
+      socket2.emit("join_room", { roomCode: code, playerName }, (res) => {
+        if (res.success) {
+          log(`Joined room ${res.roomCode} as ${playerName} | Mode: ${res.mode}`, "success");
+          log(`Letters: ${res.puzzle.letters.join(" ").toUpperCase()} | Center: ${res.puzzle.center.toUpperCase()}`, "success");
+        } else {
+          log("join_room failed: " + res.error, "error");
+        }
+      });
+    }
+
+    function submitWord() {
+      const word = document.getElementById("wordInput").value.trim();
+      if (!word) return;
+      socket1.emit("submit_word", { word }, (res) => {
+        if (res.success) {
+          log(`Submitted "${word}" ✓`, "success");
+        } else {
+          log(`Submit failed: "${word}" — ${res.error}`, "error");
+        }
+        document.getElementById("wordInput").value = "";
+      });
+    }
+
+    function toggleMode() {
+      socket1.emit("toggle_mode", {}, (res) => {
+        if (res.success) {
+          log(`Mode toggled to: ${res.mode}`, "success");
+        } else {
+          log("toggle_mode failed", "error");
+        }
+      });
+    }
+  </script>
+</body>
+</html>

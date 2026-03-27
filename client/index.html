@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spelling Bee — Two Player</title>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <style>
+    /* ── Reset & base ────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "New York", "Georgia", serif;
+      background: #fff;
+      color: #1a1a1a;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ─────────────────────────────────────────────────────── */
+    header {
+      border-bottom: 1px solid #e0e0e0;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .header-title {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .header-room {
+      font-size: 13px;
+      color: #555;
+      font-family: "Helvetica Neue", sans-serif;
+    }
+
+    .header-room span {
+      font-weight: 700;
+      color: #1a1a1a;
+      letter-spacing: 2px;
+    }
+
+    .header-players {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      font-family: "Helvetica Neue", sans-serif;
+      font-size: 13px;
+    }
+
+    .player-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .player-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .mode-toggle {
+      background: none;
+      border: 1px solid #ccc;
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: 12px;
+      font-family: "Helvetica Neue", sans-serif;
+      cursor: pointer;
+      color: #555;
+      transition: all 0.2s;
+    }
+
+    .mode-toggle:hover {
+      border-color: #888;
+      color: #1a1a1a;
+    }
+
+    .mode-toggle.competitive {
+      border-color: #e8821a;
+      color: #e8821a;
+    }
+
+    /* ── Lobby screen ────────────────────────────────────────────────── */
+    #lobby {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      gap: 32px;
+      padding: 40px 24px;
+    }
+
+    .lobby-title {
+      font-size: 32px;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .lobby-subtitle {
+      font-size: 16px;
+      color: #555;
+      font-family: "Helvetica Neue", sans-serif;
+      text-align: center;
+      max-width: 360px;
+      line-height: 1.5;
+    }
+
+    .lobby-card {
+      background: #fafafa;
+      border: 1px solid #e0e0e0;
+      border-radius: 12px;
+      padding: 28px 32px;
+      width: 100%;
+      max-width: 380px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .lobby-card h2 {
+      font-size: 16px;
+      font-weight: 700;
+      font-family: "Helvetica Neue", sans-serif;
+    }
+
+    .lobby-input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 15px;
+      font-family: "Helvetica Neue", sans-serif;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .lobby-input:focus { border-color: #f7da21; }
+
+    .lobby-input.code {
+      text-transform: uppercase;
+      letter-spacing: 4px;
+      font-weight: 700;
+      font-size: 18px;
+    }
+
+    .lobby-btn {
+      width: 100%;
+      padding: 12px;
+      background: #f7da21;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 700;
+      font-family: "Helvetica Neue", sans-serif;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .lobby-btn:hover { background: #f0d000; }
+
+    .lobby-divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: #aaa;
+      font-size: 13px;
+      font-family: "Helvetica Neue", sans-serif;
+    }
+
+    .lobby-divider::before,
+    .lobby-divider::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: #e0e0e0;
+    }
+
+    .mode-select {
+      display: flex;
+      gap: 8px;
+    }
+
+    .mode-btn {
+      flex: 1;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      background: #fff;
+      font-size: 13px;
+      font-family: "Helvetica Neue", sans-serif;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+
+    .mode-btn.selected {
+      border-color: #f7da21;
+      background: #fffbe6;
+      font-weight: 700;
+    }
+
+    /* ── Waiting screen ──────────────────────────────────────────────── */
+    #waiting {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      gap: 20px;
+      padding: 40px 24px;
+      text-align: center;
+    }
+
+    .waiting-code {
+      font-size: 48px;
+      font-weight: 700;
+      letter-spacing: 8px;
+      color: #1a1a1a;
+    }
+
+    .waiting-label {
+      font-size: 14px;
+      color: #555;
+      font-family: "Helvetica Neue", sans-serif;
+    }
+
+    .pulse {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #f7da21;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.4); opacity: 0.6; }
+    }
+
+    /* ── Game screen ─────────────────────────────────────────────────── */
+    #game {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+    }
+
+    .game-body {
+      display: flex;
+      flex: 1;
+      padding: 24px;
+      gap: 32px;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    /* ── Score bar ───────────────────────────────────────────────────── */
+    .score-bar {
+      border-bottom: 1px solid #e0e0e0;
+      padding: 10px 24px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      font-family: "Helvetica Neue", sans-serif;
+      font-size: 13px;
+    }
+
+    .score-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .score-name { color: #555; }
+
+    .score-value {
+      font-weight: 700;
+      font-size: 16px;
+    }
+
+    .rank-label {
+      margin-left: auto;
+      font-size: 13px;
+      color: #555;
+      font-style: italic;
+    }
+
+    /* ── Honeycomb area ──────────────────────────────────────────────── */
+    .honeycomb-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      flex-shrink: 0;
+    }
+
+    /* ── Word input display ──────────────────────────────────────────── */
+    .word-display {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: 4px;
+      height: 40px;
+      text-align: center;
+      min-width: 260px;
+    }
+
+    .word-display .center-letter { color: #f7da21; }
+
+    /* ── SVG Honeycomb ───────────────────────────────────────────────── */
+    .honeycomb-svg { cursor: pointer; user-select: none; }
+
+    .hex-cell { transition: filter 0.1s; }
+    .hex-cell:hover .hex-bg { filter: brightness(0.93); }
+    .hex-cell:active .hex-bg { filter: brightness(0.85); }
+
+    .hex-bg-center { fill: #f7da21; }
+    .hex-bg-outer  { fill: #e6e6e6; }
+    .hex-letter    { 
+      font-family: "Helvetica Neue", sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      fill: #1a1a1a;
+      pointer-events: none;
+      dominant-baseline: central;
+      text-anchor: middle;
+    }
+
+    /* ── Controls ────────────────────────────────────────────────────── */
+    .controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .ctrl-btn {
+      padding: 10px 20px;
+      border-radius: 24px;
+      border: 1px solid #ccc;
+      background: #fff;
+      font-family: "Helvetica Neue", sans-serif;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .ctrl-btn:hover { border-color: #888; }
+
+    .ctrl-btn.submit {
+      background: #1a1a1a;
+      color: #fff;
+      border-color: #1a1a1a;
+    }
+
+    .ctrl-btn.submit:hover { background: #333; }
+    .ctrl-btn.submit:disabled {
+      background: #ccc;
+      border-color: #ccc;
+      cursor: default;
+    }
+
+    /* ── Message ─────────────────────────────────────────────────────── */
+    .message {
+      height: 24px;
+      font-family: "Helvetica Neue", sans-serif;
+      font-size: 14px;
+      text-align: center;
+      color: #555;
+    }
+
+    .message.error { color: #c0392b; }
+    .message.success { color: #27ae60; }
+
+    /* ── Word list ───────────────────────────────────────────────────── */
+    .word-list-area {
+      flex: 1;
+      max-width: 320px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .word-list-header {
+      font-family: "Helvetica Neue", sans-serif;
+      font-size: 13px;
+      color: #555;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .word-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-content: flex-start;
+    }
+
+    .word-chip {
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-family: "Helvetica Neue", sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      color: #fff;
+    }
+
+    .word-chip.pangram {
+      font-weight: 700;
+      text-decoration: underline;
+    }
+
+    /* ── Pangram overlay ─────────────────────────────────────────────── */
+    #pangram-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #pangram-overlay.show { display: flex; }
+
+    .pangram-card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 40px 48px;
+      text-align: center;
+      max-width: 360px;
+      animation: pop 0.3s ease;
+    }
+
+    @keyframes pop {
+      0% { transform: scale(0.8); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .pangram-emoji { font-size: 48px; margin-bottom: 12px; }
+    .pangram-word  { font-size: 32px; font-weight: 700; color: #f7da21; margin-bottom: 8px; }
+    .pangram-msg   { font-size: 16px; color: #555; font-family: "Helvetica Neue", sans-serif; }
+    .pangram-close {
+      margin-top: 24px;
+      padding: 10px 28px;
+      background: #1a1a1a;
+      color: #fff;
+      border: none;
+      border-radius: 24px;
+      font-size: 14px;
+      font-family: "Helvetica Neue", sans-serif;
+      cursor: pointer;
+    }
+
+    /* ── Paused overlay ──────────────────────────────────────────────── */
+    #paused-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(255,255,255,0.9);
+      z-index: 99;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 16px;
+      font-family: "Helvetica Neue", sans-serif;
+      text-align: center;
+    }
+
+    #paused-overlay.show { display: flex; }
+    .paused-title { font-size: 24px; font-weight: 700; }
+    .paused-msg   { font-size: 15px; color: #555; }
+
+    /* ── Mobile ──────────────────────────────────────────────────────── */
+    @media (max-width: 640px) {
+      .game-body {
+        flex-direction: column;
+        align-items: center;
+        padding: 16px;
+        gap: 20px;
+      }
+
+      .word-list-area {
+        max-width: 100%;
+        width: 100%;
+      }
+
+      header { padding: 10px 16px; }
+      .header-title { font-size: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Lobby ──────────────────────────────────────────────────────────────── -->
+<div id="lobby">
+  <div>
+    <div class="lobby-title">🐝 Spelling Bee</div>
+    <div class="lobby-subtitle" style="margin-top:8px">Two-player edition</div>
+  </div>
+
+  <div class="lobby-card">
+    <h2>Create a new game</h2>
+    <input id="create-name" class="lobby-input" placeholder="Your name" maxlength="20">
+    <div class="mode-select">
+      <div class="mode-btn selected" data-mode="collaborative" onclick="selectMode(this)">🤝 Collaborative</div>
+      <div class="mode-btn" data-mode="competitive" onclick="selectMode(this)">⚔️ Competitive</div>
+    </div>
+    <button class="lobby-btn" onclick="createRoom()">Create Room</button>
+
+    <div class="lobby-divider">or</div>
+
+    <h2>Join a game</h2>
+    <input id="join-name" class="lobby-input" placeholder="Your name" maxlength="20">
+    <input id="join-code" class="lobby-input code" placeholder="ROOM" maxlength="4">
+    <button class="lobby-btn" onclick="joinRoom()">Join Room</button>
+  </div>
+</div>
+
+<!-- ── Waiting ─────────────────────────────────────────────────────────────── -->
+<div id="waiting">
+  <div class="waiting-label">Share this code with your opponent</div>
+  <div class="waiting-code" id="waiting-code">----</div>
+  <div class="pulse"></div>
+  <div class="waiting-label">Waiting for opponent to join...</div>
+</div>
+
+<!-- ── Game ───────────────────────────────────────────────────────────────── -->
+<div id="game">
+
+  <header>
+    <div class="header-title">🐝 Spelling Bee</div>
+    <div class="header-room">Room <span id="header-room-code">----</span></div>
+    <div class="header-players" id="header-players"></div>
+    <button class="mode-toggle" id="mode-toggle" onclick="toggleMode()">Collaborative</button>
+  </header>
+
+  <div class="score-bar" id="score-bar"></div>
+
+  <div class="game-body">
+
+    <div class="honeycomb-area">
+      <div class="word-display" id="word-display">
+        <span id="word-letters"></span>
+      </div>
+
+      <svg class="honeycomb-svg" id="honeycomb" width="300" height="280" viewBox="0 0 300 280"></svg>
+
+      <div class="message" id="message"></div>
+
+      <div class="controls">
+        <button class="ctrl-btn" onclick="deleteLetter()">Delete</button>
+        <button class="ctrl-btn" onclick="shuffleLetters()">Shuffle</button>
+        <button class="ctrl-btn submit" id="submit-btn" onclick="submitWord()">Enter</button>
+      </div>
+    </div>
+
+    <div class="word-list-area">
+      <div class="word-list-header" id="word-list-header">Words Found — 0</div>
+      <div class="word-list" id="word-list"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Pangram overlay ────────────────────────────────────────────────────── -->
+<div id="pangram-overlay">
+  <div class="pangram-card">
+    <div class="pangram-emoji">🎉</div>
+    <div class="pangram-word" id="pangram-word"></div>
+    <div class="pangram-msg" id="pangram-msg"></div>
+    <button class="pangram-close" onclick="closePangram()">Keep playing</button>
+  </div>
+</div>
+
+<!-- ── Paused overlay ─────────────────────────────────────────────────────── -->
+<div id="paused-overlay">
+  <div class="paused-title">⏸ Game Paused</div>
+  <div class="paused-msg" id="paused-msg"></div>
+  <div class="paused-msg" style="margin-top: 12px;">
+    Rejoin with room code <strong id="paused-room-code" style="letter-spacing: 4px; font-size: 18px;"></strong>
+  </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+const socket = io("http://localhost:3000");
+
+let state = {
+  roomCode: null,
+  playerName: null,
+  playerColor: null,
+  opponentName: null,
+  opponentColor: null,
+  mode: "collaborative",
+  letters: [],       // all 7 letters, center first
+  center: null,
+  currentWord: [],   // array of letters being built
+  foundWords: {},
+  scores: {},
+  myScore: 0,
+  gameActive: false,
+};
+
+let selectedMode = "collaborative";
+
+// ── Rank labels (NYT-style) ────────────────────────────────────────────────
+const RANKS = [
+  { label: "Beginner",    pct: 0   },
+  { label: "Good Start",  pct: 0.02 },
+  { label: "Moving Up",   pct: 0.05 },
+  { label: "Good",        pct: 0.08 },
+  { label: "Solid",       pct: 0.15 },
+  { label: "Nice",        pct: 0.25 },
+  { label: "Great",       pct: 0.40 },
+  { label: "Amazing",     pct: 0.50 },
+  { label: "Genius",      pct: 0.70 },
+  { label: "Queen Bee",   pct: 1.00 },
+];
+
+let maxScore = 0;
+
+function getRank(score) {
+  if (maxScore === 0) return "Beginner";
+  const pct = score / maxScore;
+  let rank = RANKS[0].label;
+  for (const r of RANKS) {
+    if (pct >= r.pct) rank = r.label;
+  }
+  return rank;
+}
+
+// ── Lobby ──────────────────────────────────────────────────────────────────
+function selectMode(el) {
+  document.querySelectorAll(".mode-btn").forEach(b => b.classList.remove("selected"));
+  el.classList.add("selected");
+  selectedMode = el.dataset.mode;
+}
+
+function createRoom() {
+  const name = document.getElementById("create-name").value.trim();
+  if (!name) return showLobbyError("Please enter your name.");
+  socket.emit("create_room", { playerName: name, mode: selectedMode }, (res) => {
+    if (res.success) {
+      state.playerName = name;
+      state.playerColor = res.color;
+      state.roomCode = res.roomCode;
+      state.mode = res.mode;
+      state.letters = res.puzzle.letters;
+      state.center = res.puzzle.center;
+      maxScore = res.puzzle.maxScore;
+      showWaiting(res.roomCode);
+    } else {
+      showLobbyError(res.error);
+    }
+  });
+}
+
+function joinRoom() {
+  const name = document.getElementById("join-name").value.trim();
+  const code = document.getElementById("join-code").value.trim().toUpperCase();
+  if (!name) return showLobbyError("Please enter your name.");
+  if (code.length !== 4) return showLobbyError("Please enter a 4-letter room code.");
+  socket.emit("join_room", { roomCode: code, playerName: name }, (res) => {
+    if (res.success) {
+      state.playerName = name;
+      state.playerColor = res.color;
+      state.roomCode = res.roomCode;
+      state.mode = res.mode;
+      state.letters = res.puzzle.letters;
+      state.center = res.puzzle.center;
+      maxScore = res.puzzle.maxScore;
+      state.foundWords = res.foundWords || {};
+      state.scores = res.scores || {};
+      if (res.opponent) {
+        state.opponentName = res.opponent.name;
+        state.opponentColor = res.opponent.color;
+      }
+      startGame();
+    } else {
+      showLobbyError(res.error);
+    }
+  });
+}
+
+function showLobbyError(msg) {
+  // Simple alert for now
+  alert(msg);
+}
+
+// ── Screens ────────────────────────────────────────────────────────────────
+function showWaiting(code) {
+  document.getElementById("lobby").style.display = "none";
+  document.getElementById("waiting").style.display = "flex";
+  document.getElementById("waiting-code").textContent = code;
+}
+
+function startGame() {
+  state.gameActive = true;
+  document.getElementById("lobby").style.display = "none";
+  document.getElementById("waiting").style.display = "none";
+  document.getElementById("game").style.display = "flex";
+  document.getElementById("header-room-code").textContent = state.roomCode;
+  buildHoneycomb();
+  updateHeader();
+  updateScoreBar();
+  renderWordList();
+}
+
+// ── Honeycomb ──────────────────────────────────────────────────────────────
+// Positions: center + 6 surrounding in a hex grid
+const HEX_POSITIONS = [
+  { x: 150, y: 140 },  // center
+  { x: 150, y: 60  },  // top
+  { x: 216, y: 100 },  // top-right
+  { x: 216, y: 180 },  // bottom-right
+  { x: 150, y: 220 },  // bottom
+  { x:  84, y: 180 },  // bottom-left
+  { x:  84, y: 100 },  // top-left
+];
+
+const HEX_SIZE = 36; // radius of hexagon
+
+function hexPath(cx, cy, r) {
+  const pts = [];
+  for (let i = 0; i < 6; i++) {
+    const angle = (Math.PI / 180) * (60 * i - 30);
+    pts.push(`${cx + r * Math.cos(angle)},${cy + r * Math.sin(angle)}`);
+  }
+  return "M" + pts.join("L") + "Z";
+}
+
+function buildHoneycomb() {
+  const svg = document.getElementById("honeycomb");
+  svg.innerHTML = "";
+
+  state.letters.forEach((letter, i) => {
+    const { x, y } = HEX_POSITIONS[i];
+    const isCenter = i === 0;
+
+    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    g.classList.add("hex-cell");
+    g.style.cursor = "pointer";
+
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", hexPath(x, y, HEX_SIZE));
+    path.classList.add("hex-bg", isCenter ? "hex-bg-center" : "hex-bg-outer");
+
+    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    text.setAttribute("x", x);
+    text.setAttribute("y", y);
+    text.classList.add("hex-letter");
+    text.textContent = letter.toUpperCase();
+
+    g.appendChild(path);
+    g.appendChild(text);
+    g.addEventListener("click", () => addLetter(letter));
+    svg.appendChild(g);
+  });
+}
+
+function updateHexHighlights() {
+  const used = new Set(state.currentWord);
+  const cells = document.getElementById("honeycomb").querySelectorAll(".hex-bg");
+  cells.forEach((cell, i) => {
+    const letter = state.letters[i];
+    if (used.has(letter)) {
+      cell.style.filter = "brightness(0.88)";
+    } else {
+      cell.style.filter = "";
+    }
+  });
+}
+
+// ── Word input ─────────────────────────────────────────────────────────────
+function addLetter(letter) {
+  state.currentWord.push(letter);
+  renderWordDisplay();
+  updateHexHighlights();
+  clearMessage();
+}
+
+function deleteLetter() {
+  state.currentWord.pop();
+  renderWordDisplay();
+  updateHexHighlights();
+  clearMessage();
+}
+
+function shuffleLetters() {
+  // Shuffle outer letters only (keep center first)
+  const outer = state.letters.slice(1);
+  for (let i = outer.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [outer[i], outer[j]] = [outer[j], outer[i]];
+  }
+  state.letters = [state.letters[0], ...outer];
+  buildHoneycomb();
+}
+
+function renderWordDisplay() {
+  const container = document.getElementById("word-letters");
+  container.innerHTML = "";
+  state.currentWord.forEach(letter => {
+    const span = document.createElement("span");
+    span.textContent = letter.toUpperCase();
+    if (letter === state.center) span.classList.add("center-letter");
+    container.appendChild(span);
+  });
+}
+
+// ── Submit ─────────────────────────────────────────────────────────────────
+function submitWord() {
+  const word = state.currentWord.join("");
+  if (word.length < 4) {
+    showMessage("Too short!", "error");
+    state.currentWord = [];
+    renderWordDisplay();
+    updateHexHighlights();
+    return;
+  }
+  if (!word.includes(state.center)) {
+    showMessage(`Must contain the center letter ${state.center.toUpperCase()}`, "error");
+    state.currentWord = [];
+    renderWordDisplay();
+    updateHexHighlights();
+    return;
+  }
+  socket.emit("submit_word", { word }, (res) => {
+    if (res.success) {
+      state.currentWord = [];
+      renderWordDisplay();
+      clearMessage();
+      updateHexHighlights();
+    } else {
+      showMessage(res.error, "error");
+      state.currentWord = [];
+      renderWordDisplay();
+      updateHexHighlights();
+    }
+  });
+}
+
+// ── Message ────────────────────────────────────────────────────────────────
+let messageTimer = null;
+
+function showMessage(msg, type = "") {
+  const el = document.getElementById("message");
+  el.textContent = msg;
+  el.className = "message " + type;
+  clearTimeout(messageTimer);
+  messageTimer = setTimeout(() => { el.textContent = ""; el.className = "message"; }, 2500);
+}
+
+function clearMessage() {
+  const el = document.getElementById("message");
+  el.textContent = "";
+  el.className = "message";
+  clearTimeout(messageTimer);
+}
+
+// ── Header & scores ────────────────────────────────────────────────────────
+function updateHeader() {
+  const container = document.getElementById("header-players");
+  container.innerHTML = "";
+
+  const players = [
+    { name: state.playerName, color: state.playerColor },
+    ...(state.opponentName ? [{ name: state.opponentName, color: state.opponentColor }] : [])
+  ];
+
+  players.forEach(p => {
+    const badge = document.createElement("div");
+    badge.className = "player-badge";
+    badge.innerHTML = `<div class="player-dot" style="background:${p.color}"></div><span>${p.name}</span>`;
+    container.appendChild(badge);
+  });
+
+  const toggle = document.getElementById("mode-toggle");
+  toggle.textContent = state.mode === "collaborative" ? "Collaborative" : "Competitive";
+  toggle.className = "mode-toggle" + (state.mode === "competitive" ? " competitive" : "");
+}
+
+function updateScoreBar() {
+  const bar = document.getElementById("score-bar");
+  bar.innerHTML = "";
+
+  if (state.mode === "collaborative") {
+    const shared = state.scores["shared"] || 0;
+    bar.innerHTML = `
+      <div class="score-item">
+        <span class="score-name">Score</span>
+        <span class="score-value">${shared}</span>
+      </div>
+      <span class="rank-label">${getRank(shared)}</span>
+    `;
+  } else {
+    const myScore = state.scores[state.playerName] || 0;
+    const oppScore = state.opponentName ? (state.scores[state.opponentName] || 0) : 0;
+
+    const myItem = document.createElement("div");
+    myItem.className = "score-item";
+    myItem.innerHTML = `
+      <div class="player-dot" style="background:${state.playerColor}"></div>
+      <span class="score-name">${state.playerName}</span>
+      <span class="score-value" style="color:${state.playerColor}">${myScore}</span>
+    `;
+    bar.appendChild(myItem);
+
+    if (state.opponentName) {
+      const oppItem = document.createElement("div");
+      oppItem.className = "score-item";
+      oppItem.innerHTML = `
+        <div class="player-dot" style="background:${state.opponentColor}"></div>
+        <span class="score-name">${state.opponentName}</span>
+        <span class="score-value" style="color:${state.opponentColor}">${oppScore}</span>
+      `;
+      bar.appendChild(oppItem);
+    }
+
+    const totalScore = myScore + oppScore;
+    const rankEl = document.createElement("span");
+    rankEl.className = "rank-label";
+    rankEl.textContent = getRank(totalScore);
+    bar.appendChild(rankEl);
+  }
+}
+
+// ── Word list ──────────────────────────────────────────────────────────────
+function renderWordList() {
+  const list = document.getElementById("word-list");
+  const header = document.getElementById("word-list-header");
+  const words = Object.values(state.foundWords);
+  header.textContent = `Words Found — ${words.length}`;
+  list.innerHTML = "";
+  words.sort((a, b) => a.word.localeCompare(b.word)).forEach(entry => {
+    const chip = document.createElement("div");
+    chip.className = "word-chip" + (entry.isPangram ? " pangram" : "");
+    chip.style.background = entry.color;
+    chip.textContent = entry.word;
+    list.appendChild(chip);
+  });
+}
+
+// ── Keyboard input ─────────────────────────────────────────────────────────
+document.addEventListener("keydown", (e) => {
+  if (!state.gameActive) return;
+  if (e.target.tagName === "BUTTON") return;
+  if (e.key === "Enter") return submitWord();
+  if (e.key === "Backspace" || e.key === "Delete") return deleteLetter();
+  if (/^[a-zA-Z]$/.test(e.key)) {
+    const letter = e.key.toLowerCase();
+    if (state.letters.includes(letter)) addLetter(letter);
+    else showMessage("Not in today's letters", "error");
+  }
+});
+
+// ── Socket events ──────────────────────────────────────────────────────────
+socket.on("opponent_joined", ({ playerName, color }) => {
+  state.opponentName = playerName;
+  state.opponentColor = color;
+  if (document.getElementById("waiting").style.display !== "none") {
+    startGame();
+  }
+  updateHeader();
+  updateScoreBar();
+});
+
+socket.on("players_ready", ({ players }) => {
+  players.forEach(p => {
+    if (p.name !== state.playerName) {
+      state.opponentName = p.name;
+      state.opponentColor = p.color;
+    }
+  });
+  updateHeader();
+});
+
+socket.on("word_found", ({ word, playerName, color, score, isPangram, scores }) => {
+  state.foundWords[word] = { word, playerName, color, score, isPangram };
+  state.scores = scores;
+  renderWordList();
+  updateScoreBar();
+});
+
+socket.on("pangram_found", ({ word, playerName, mode }) => {
+  document.getElementById("pangram-word").textContent = word.toUpperCase();
+  const isMe = playerName === state.playerName;
+  if (mode === "competitive") {
+    document.getElementById("pangram-msg").textContent =
+      isMe ? "You found the pangram! 🏆" : `${playerName} found the pangram!`;
+  } else {
+    document.getElementById("pangram-msg").textContent = "You found the pangram!";
+  }
+  document.getElementById("pangram-overlay").classList.add("show");
+});
+
+socket.on("mode_changed", ({ mode, scores }) => {
+  state.mode = mode;
+  state.scores = scores;
+  updateHeader();
+  updateScoreBar();
+});
+
+socket.on("game_paused", ({ playerName }) => {
+  document.getElementById("paused-msg").textContent =
+    `${playerName} disconnected. Waiting for them to rejoin...`;
+  document.getElementById("paused-room-code").textContent = state.roomCode;
+  document.getElementById("paused-overlay").classList.add("show");
+});
+
+socket.on("game_resumed", ({ playerName }) => {
+  document.getElementById("paused-overlay").classList.remove("show");
+  showMessage(`${playerName} rejoined!`, "success");
+});
+
+socket.on("session_ended", ({ reason }) => {
+  document.getElementById("paused-overlay").classList.remove("show");
+  alert(reason + " The session has ended.");
+  location.reload();
+});
+
+// ── Pangram overlay ────────────────────────────────────────────────────────
+function closePangram() {
+  document.getElementById("pangram-overlay").classList.remove("show");
+}
+
+// ── Mode toggle ────────────────────────────────────────────────────────────
+function toggleMode() {
+  socket.emit("toggle_mode", {}, (res) => {
+    if (!res.success) showMessage("Couldn't toggle mode", "error");
+  });
+}
+
+// ── Warn on accidental refresh/close ──────────────────────────────────────
+window.addEventListener("beforeunload", (e) => {
+  if (!state.gameActive) return;
+  e.preventDefault();
+  e.returnValue = "";
+});
+
+</script>
+</body>
+</html>
