@@ -4,7 +4,6 @@
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
-const { execFile } = require("child_process");
 const path = require("path");
 
 // ── App setup ────────────────────────────────────────────────────────────────
@@ -28,39 +27,26 @@ function getTodayString() {
   return new Date().toISOString().slice(0, 10);
 }
 
+const { generatePuzzle } = require("./generator");
+
 function getPuzzle() {
   return new Promise((resolve, reject) => {
     const today = getTodayString();
 
-    // Return cached puzzle if it's still today's
     if (puzzleCache.date === today && puzzleCache.puzzle) {
       console.log("Returning cached puzzle for", today);
       return resolve(puzzleCache.puzzle);
     }
 
     console.log("Generating new puzzle for", today);
-
-    const generatorPath = path.join(
-      __dirname,
-      "../puzzle-generator/generator.py"
-    );
-    const pythonPath = process.env.PYTHON_PATH || "python3";
-
-    execFile(pythonPath, [generatorPath, "--json"], (err, stdout, stderr) => {
-      if (err) {
-        console.error("Puzzle generation failed:", err.message);
-        console.error("stderr:", stderr);
-        console.error("stdout:", stdout);
-        return reject(err);
-      }
-      try {
-        const puzzle = JSON.parse(stdout.trim());
-        puzzleCache = { date: today, puzzle };
-        resolve(puzzle);
-      } catch (e) {
-        reject(new Error("Failed to parse puzzle JSON: " + stdout));
-      }
-    });
+    try {
+      const puzzle = generatePuzzle(today);
+      if (!puzzle) return reject(new Error("Failed to generate puzzle"));
+      puzzleCache = { date: today, puzzle };
+      resolve(puzzle);
+    } catch (err) {
+      reject(err);
+    }
   });
 }
 
