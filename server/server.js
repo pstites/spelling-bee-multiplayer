@@ -48,7 +48,9 @@ function getPuzzle() {
 
     execFile(pythonPath, [generatorPath, "--json"], (err, stdout, stderr) => {
       if (err) {
-        console.error("Puzzle generation failed:", stderr);
+        console.error("Puzzle generation failed:", err.message);
+        console.error("stderr:", stderr);
+        console.error("stdout:", stdout);
         return reject(err);
       }
       try {
