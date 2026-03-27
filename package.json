@@ -2,7 +2,6 @@
   "name": "spelling-bee-multiplayer",
   "version": "1.0.0",
   "scripts": {
-    "start": "cd server && node server.js",
-    "build": "pip3 install -r puzzle-generator/requirements.txt"
+    "start": "cd server && node server.js"
   }
 }

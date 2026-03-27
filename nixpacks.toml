@@ -1,5 +1,5 @@
 [phases.setup]
-nixPkgs = ["python311", "python311Packages.pip"]
+nixPkgs = ["python311", "python311Packages.pip", "python311Packages.wordfreq"]
 
-[phases.build]
-cmds = ["pip3 install -r puzzle-generator/requirements.txt"]
+[start]
+cmd = "cd server && node server.js"
