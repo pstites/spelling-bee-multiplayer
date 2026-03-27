@@ -1,5 +1,2 @@
 [phases.setup]
 nixPkgs = ["python311", "python311Packages.pip", "python311Packages.wordfreq"]
-
-[start]
-cmd = "cd server && node server.js"
