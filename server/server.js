@@ -119,7 +119,7 @@ io.on("connection", (socket) => {
       room.scores[playerName] = 0;
 
       socket.join(code);
-      console.log(`Room ${code} created by ${playerName} (${room.puzzleType} puzzle, seed: ${seed})`);
+      console.log(`Room ${code} created by ${playerName} (${room.puzzleType} puzzle, seed: ${seed}), host socket: ${socket.id}`);
 
       callback({
         success: true,
@@ -142,6 +142,8 @@ io.on("connection", (socket) => {
   socket.on("join_room", async ({ roomCode, playerName }, callback) => {
     const code = roomCode.toUpperCase();
     const room = rooms[code];
+
+    console.log(`join_room: socket=${socket.id} name=${playerName} code=${code} roomExists=${!!room}`);
 
     if (!room) {
       return callback({ success: false, error: "Room not found." });
@@ -355,6 +357,7 @@ io.on("connection", (socket) => {
   // ── Disconnect ─────────────────────────────────────────────────────────────
   socket.on("disconnect", () => {
     const room = getRoomForSocket(socket.id);
+    console.log(`Socket disconnected: ${socket.id} — foundRoom=${!!room}${room ? ` (${room.code}, gameStarted=${room.gameStarted})` : ""}`);
     if (!room) return;
 
     const player = room.players[socket.id];
@@ -376,7 +379,7 @@ io.on("connection", (socket) => {
 
     // End the session after 2 minutes if they don't rejoin
     room.rejoinTimer = setTimeout(() => {
-      console.log(`Room ${room.code} closed — ${player.name} did not rejoin`);
+      console.log(`Room ${room.code} deleted — ${player.name} did not rejoin within 60s`);
       io.to(room.code).emit("session_ended", {
         reason: `${player.name} did not reconnect in time.`,
       });
