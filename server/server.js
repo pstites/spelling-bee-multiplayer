@@ -87,6 +87,7 @@ function createRoom(code, puzzle, puzzleType) {
     scores: {},                  // playerName -> score
     disconnectedPlayer: null,    // name of player currently away
     rejoinTimer: null,
+    gameStarted: false,          // true once both players have joined
   };
   return rooms[code];
 }
@@ -205,6 +206,9 @@ io.on("connection", (socket) => {
     const opponent = Object.values(room.players).find(
       (p) => p.name !== playerName
     );
+
+    // Both players are now present — game is underway
+    room.gameStarted = true;
 
     // Notify the first player that their opponent has joined
     socket.to(code).emit("opponent_joined", { playerName, color });
@@ -331,6 +335,12 @@ io.on("connection", (socket) => {
     if (!player) return;
 
     console.log(`${player.name} disconnected from room ${room.code}`);
+
+    // During the waiting room phase, allow silent reconnect — no pause, no timer
+    if (!room.gameStarted) {
+      return;
+    }
+
     room.disconnectedPlayer = player.name;
 
     // Non-blocking: let the remaining player keep playing
