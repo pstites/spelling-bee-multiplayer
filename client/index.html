@@ -1055,7 +1055,7 @@ socket.on("mode_changed", ({ mode, scores }) => {
 });
 
 // ── Reconnecting banner helpers ────────────────────────────────────────────
-const REJOIN_TIMEOUT_S = 60;
+const REJOIN_TIMEOUT_S = 120;
 let reconnectCountdown = null;
 
 function showReconnectingBanner(baseMsg) {

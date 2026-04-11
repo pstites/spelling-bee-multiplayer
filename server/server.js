@@ -417,7 +417,7 @@ io.on("connection", (socket) => {
         reason: `${player.name} did not reconnect in time.`,
       });
       delete rooms[room.code];
-    }, 60 * 1000);
+    }, 2 * 60 * 1000);
   });
 });
 
