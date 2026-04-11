@@ -463,24 +463,19 @@
       cursor: pointer;
     }
 
-    /* ── Paused overlay ──────────────────────────────────────────────── */
-    #paused-overlay {
+    /* ── Reconnecting banner ─────────────────────────────────────────── */
+    #reconnecting-banner {
       display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(255,255,255,0.9);
-      z-index: 99;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      gap: 16px;
+      background: #fff8e1;
+      border-bottom: 1px solid #ffe082;
+      padding: 8px 24px;
       font-family: "Helvetica Neue", sans-serif;
+      font-size: 13px;
+      color: #6d4c00;
       text-align: center;
     }
 
-    #paused-overlay.show { display: flex; }
-    .paused-title { font-size: 24px; font-weight: 700; }
-    .paused-msg   { font-size: 15px; color: #555; }
+    #reconnecting-banner.show { display: block; }
 
     /* ── Mobile ──────────────────────────────────────────────────────── */
     @media (max-width: 640px) {
@@ -547,6 +542,7 @@
   </header>
 
   <div class="score-bar" id="score-bar"></div>
+  <div id="reconnecting-banner"><span id="reconnecting-msg"></span></div>
 
   <div class="game-body">
 
@@ -596,14 +592,6 @@
   © 2026 Nathaniel Page Stites. All rights reserved.
 </footer>
 
-<!-- ── Paused overlay ─────────────────────────────────────────────────────── -->
-<div id="paused-overlay">
-  <div class="paused-title">⏸ Game Paused</div>
-  <div class="paused-msg" id="paused-msg"></div>
-  <div class="paused-msg" style="margin-top: 12px;">
-    Rejoin with room code <strong id="paused-room-code" style="letter-spacing: 4px; font-size: 18px;"></strong>
-  </div>
-</div>
 
 <script>
 // ── State ──────────────────────────────────────────────────────────────────
@@ -1031,22 +1019,53 @@ socket.on("mode_changed", ({ mode, scores }) => {
   updateScoreBar();
 });
 
-socket.on("game_paused", ({ playerName }) => {
-  document.getElementById("paused-msg").textContent =
-    `${playerName} disconnected. Waiting for them to rejoin...`;
-  document.getElementById("paused-room-code").textContent = state.roomCode;
-  document.getElementById("paused-overlay").classList.add("show");
+// Opponent disconnected — show banner but keep game playable
+socket.on("opponent_disconnected", ({ playerName }) => {
+  document.getElementById("reconnecting-msg").textContent =
+    `${playerName} disconnected — waiting to reconnect...`;
+  document.getElementById("reconnecting-banner").classList.add("show");
 });
 
 socket.on("game_resumed", ({ playerName }) => {
-  document.getElementById("paused-overlay").classList.remove("show");
-  showMessage(`${playerName} rejoined!`, "success");
+  document.getElementById("reconnecting-banner").classList.remove("show");
+  showMessage(`${playerName} reconnected!`, "success");
 });
 
 socket.on("session_ended", ({ reason }) => {
-  document.getElementById("paused-overlay").classList.remove("show");
+  document.getElementById("reconnecting-banner").classList.remove("show");
   alert(reason + " The session has ended.");
   location.reload();
+});
+
+// Auto-rejoin when socket reconnects (handles phone sleep / app switching)
+socket.on("connect", () => {
+  if (!state.gameActive || !state.roomCode || !state.playerName) return;
+  socket.emit("join_room", { roomCode: state.roomCode, playerName: state.playerName }, (res) => {
+    if (res.success) {
+      state.foundWords = res.foundWords || {};
+      state.scores    = res.scores    || {};
+      if (res.opponent) {
+        state.opponentName  = res.opponent.name;
+        state.opponentColor = res.opponent.color;
+      }
+      renderWordList();
+      updateScoreBar();
+      updateHeader();
+      document.getElementById("reconnecting-banner").classList.remove("show");
+      showMessage("Reconnected!", "success");
+    } else {
+      // Room ended while we were away
+      alert((res.error || "Session ended.") + " Returning to lobby.");
+      location.reload();
+    }
+  });
+});
+
+// Show self-reconnecting banner if our own socket drops mid-game
+socket.on("disconnect", () => {
+  if (!state.gameActive) return;
+  document.getElementById("reconnecting-msg").textContent = "Reconnecting...";
+  document.getElementById("reconnecting-banner").classList.add("show");
 });
 
 // ── Pangram overlay ────────────────────────────────────────────────────────

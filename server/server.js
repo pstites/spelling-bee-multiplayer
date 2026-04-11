@@ -73,8 +73,7 @@ function createRoom(code, puzzle) {
     players: {},                 // socketId -> { name, color }
     foundWords: {},              // word -> { playerName, color, score }
     scores: {},                  // playerName -> score
-    paused: false,
-    pausedAt: null,
+    disconnectedPlayer: null,    // name of player currently away
     rejoinTimer: null,
   };
   return rooms[code];
@@ -133,34 +132,29 @@ io.on("connection", (socket) => {
     }
 
     const playerCount = Object.keys(room.players).length;
-
-    // Check if name is already taken by a connected player
     const existingEntry = Object.values(room.players).find(
       (p) => p.name === playerName
     );
 
-    // Only allow rejoin if the room is paused (i.e. that player disconnected)
-   if (existingEntry && room.paused && room.disconnectedPlayer !== playerName) {
-      return callback({ success: false, error: "That name is already taken in this room." });
-    }
+    if (existingEntry) {
+      if (room.disconnectedPlayer !== playerName) {
+        return callback({ success: false, error: "That name is already taken in this room." });
+      }
 
-if (existingEntry && room.paused && room.disconnectedPlayer === playerName) {
-  // Rejoin — reassign socket id
-  const oldSocketId = Object.keys(room.players).find(
-    (id) => room.players[id].name === playerName
-  );
-  delete room.players[oldSocketId];
-  room.players[socket.id] = existingEntry;
-  socket.join(code);
+      // Rejoin — reassign socket id
+      const oldSocketId = Object.keys(room.players).find(
+        (id) => room.players[id].name === playerName
+      );
+      delete room.players[oldSocketId];
+      room.players[socket.id] = existingEntry;
+      socket.join(code);
 
-  // Cancel any pending session-end timer
-  if (room.rejoinTimer) {
-    clearTimeout(room.rejoinTimer);
-    room.rejoinTimer = null;
-  }
-  room.paused = false;
-  room.disconnectedPlayer = null;
-
+      // Cancel any pending session-end timer
+      if (room.rejoinTimer) {
+        clearTimeout(room.rejoinTimer);
+        room.rejoinTimer = null;
+      }
+      room.disconnectedPlayer = null;
 
       io.to(code).emit("game_resumed", { playerName });
       console.log(`${playerName} rejoined room ${code}`);
@@ -226,7 +220,6 @@ if (existingEntry && room.paused && room.disconnectedPlayer === playerName) {
   socket.on("submit_word", ({ word }, callback) => {
     const room = getRoomForSocket(socket.id);
     if (!room) return callback({ success: false, error: "Not in a room." });
-    if (room.paused) return callback({ success: false, error: "Game is paused." });
 
     const player = room.players[socket.id];
     const w = word.toLowerCase().trim();
@@ -321,23 +314,21 @@ if (existingEntry && room.paused && room.disconnectedPlayer === playerName) {
     if (!player) return;
 
     console.log(`${player.name} disconnected from room ${room.code}`);
-    room.paused = true;
-    room.pausedAt = Date.now();
     room.disconnectedPlayer = player.name;
 
-    io.to(room.code).emit("game_paused", {
+    // Non-blocking: let the remaining player keep playing
+    io.to(room.code).emit("opponent_disconnected", {
       playerName: player.name,
-      reason: "disconnected",
     });
 
-    // Give them 5 minutes to rejoin before closing the room
+    // End the session after 2 minutes if they don't rejoin
     room.rejoinTimer = setTimeout(() => {
       console.log(`Room ${room.code} closed — ${player.name} did not rejoin`);
       io.to(room.code).emit("session_ended", {
         reason: `${player.name} did not reconnect in time.`,
       });
       delete rooms[room.code];
-    }, 5 * 60 * 1000);
+    }, 2 * 60 * 1000);
   });
 });
 
