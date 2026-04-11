@@ -49,6 +49,23 @@
       letter-spacing: 2px;
     }
 
+    .puzzle-type-badge {
+      margin-left: 8px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0;
+      background: #f0f0f0;
+      color: #555;
+      vertical-align: middle;
+    }
+
+    .puzzle-type-badge.new {
+      background: #e8f4fd;
+      color: #1a6fa8;
+    }
+
     .header-players {
       display: flex;
       gap: 16px;
@@ -512,6 +529,10 @@
       <div class="mode-btn selected" data-mode="collaborative" onclick="selectMode(this)">🤝 Collaborative</div>
       <div class="mode-btn" data-mode="competitive" onclick="selectMode(this)">⚔️ Competitive</div>
     </div>
+    <div class="mode-select">
+      <div class="mode-btn selected" data-type="daily" onclick="selectPuzzleType(this)">📅 Daily Puzzle</div>
+      <div class="mode-btn" data-type="new" onclick="selectPuzzleType(this)">🎲 New Puzzle</div>
+    </div>
     <button class="lobby-btn" onclick="createRoom()">Create Room</button>
 
     <div class="lobby-divider">or</div>
@@ -536,7 +557,7 @@
 
   <header>
     <div class="header-title">🐝 Spelling Bee</div>
-    <div class="header-room">Room <span id="header-room-code">----</span></div>
+    <div class="header-room">Room <span id="header-room-code">----</span><span id="header-puzzle-type" class="puzzle-type-badge"></span></div>
     <div class="header-players" id="header-players"></div>
     <button class="mode-toggle" id="mode-toggle" onclick="toggleMode()">Collaborative</button>
   </header>
@@ -604,6 +625,7 @@ let state = {
   opponentName: null,
   opponentColor: null,
   mode: "collaborative",
+  puzzleType: "daily",
   letters: [],       // all 7 letters, center first
   center: null,
   currentWord: [],   // array of letters being built
@@ -614,6 +636,7 @@ let state = {
 };
 
 let selectedMode = "collaborative";
+let selectedPuzzleType = "daily";
 
 // ── Rank labels (NYT-style) ────────────────────────────────────────────────
 const RANKS = [
@@ -643,20 +666,27 @@ function getRank(score) {
 
 // ── Lobby ──────────────────────────────────────────────────────────────────
 function selectMode(el) {
-  document.querySelectorAll(".mode-btn").forEach(b => b.classList.remove("selected"));
+  el.parentElement.querySelectorAll(".mode-btn").forEach(b => b.classList.remove("selected"));
   el.classList.add("selected");
   selectedMode = el.dataset.mode;
+}
+
+function selectPuzzleType(el) {
+  el.parentElement.querySelectorAll(".mode-btn").forEach(b => b.classList.remove("selected"));
+  el.classList.add("selected");
+  selectedPuzzleType = el.dataset.type;
 }
 
 function createRoom() {
   const name = document.getElementById("create-name").value.trim();
   if (!name) return showLobbyError("Please enter your name.");
-  socket.emit("create_room", { playerName: name, mode: selectedMode }, (res) => {
+  socket.emit("create_room", { playerName: name, mode: selectedMode, puzzleType: selectedPuzzleType }, (res) => {
     if (res.success) {
       state.playerName = name;
       state.playerColor = res.color;
       state.roomCode = res.roomCode;
       state.mode = res.mode;
+      state.puzzleType = res.puzzleType || "daily";
       state.letters = res.puzzle.letters;
       state.center = res.puzzle.center;
       maxScore = res.puzzle.maxScore;
@@ -678,6 +708,7 @@ function joinRoom() {
       state.playerColor = res.color;
       state.roomCode = res.roomCode;
       state.mode = res.mode;
+      state.puzzleType = res.puzzleType || "daily";
       state.letters = res.puzzle.letters;
       state.center = res.puzzle.center;
       maxScore = res.puzzle.maxScore;
@@ -896,6 +927,10 @@ function updateHeader() {
   const toggle = document.getElementById("mode-toggle");
   toggle.textContent = state.mode === "collaborative" ? "Collaborative" : "Competitive";
   toggle.className = "mode-toggle" + (state.mode === "competitive" ? " competitive" : "");
+
+  const badge = document.getElementById("header-puzzle-type");
+  badge.textContent = state.puzzleType === "new" ? "New" : "Daily";
+  badge.className = "puzzle-type-badge" + (state.puzzleType === "new" ? " new" : "");
 }
 
 function updateScoreBar() {

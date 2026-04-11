@@ -29,23 +29,34 @@ function getTodayString() {
 
 const { generatePuzzle } = require("./generator");
 
-function getPuzzle() {
+function getPuzzle(seed) {
   return new Promise((resolve, reject) => {
     const today = getTodayString();
+    const isDaily = !seed || seed === today;
 
-    if (puzzleCache.date === today && puzzleCache.puzzle) {
-      console.log("Returning cached puzzle for", today);
-      return resolve(puzzleCache.puzzle);
-    }
-
-    console.log("Generating new puzzle for", today);
-    try {
-      const puzzle = generatePuzzle(today);
-      if (!puzzle) return reject(new Error("Failed to generate puzzle"));
-      puzzleCache = { date: today, puzzle };
-      resolve(puzzle);
-    } catch (err) {
-      reject(err);
+    if (isDaily) {
+      if (puzzleCache.date === today && puzzleCache.puzzle) {
+        console.log("Returning cached daily puzzle for", today);
+        return resolve(puzzleCache.puzzle);
+      }
+      console.log("Generating daily puzzle for", today);
+      try {
+        const puzzle = generatePuzzle(today);
+        if (!puzzle) return reject(new Error("Failed to generate puzzle"));
+        puzzleCache = { date: today, puzzle };
+        resolve(puzzle);
+      } catch (err) {
+        reject(err);
+      }
+    } else {
+      console.log("Generating unique puzzle for seed:", seed);
+      try {
+        const puzzle = generatePuzzle(seed);
+        if (!puzzle) return reject(new Error("Failed to generate puzzle"));
+        resolve(puzzle);
+      } catch (err) {
+        reject(err);
+      }
     }
   });
 }
@@ -65,10 +76,11 @@ function generateRoomCode() {
   return code;
 }
 
-function createRoom(code, puzzle) {
+function createRoom(code, puzzle, puzzleType) {
   rooms[code] = {
     code,
     puzzle,
+    puzzleType: puzzleType || "daily",
     mode: "collaborative",       // or "competitive"
     players: {},                 // socketId -> { name, color }
     foundWords: {},              // word -> { playerName, color, score }
@@ -93,18 +105,20 @@ io.on("connection", (socket) => {
   console.log("Socket connected:", socket.id);
 
   // ── Create room ────────────────────────────────────────────────────────────
-  socket.on("create_room", async ({ playerName, mode }, callback) => {
+  socket.on("create_room", async ({ playerName, mode, puzzleType }, callback) => {
     try {
-      const puzzle = await getPuzzle();
+      const today = getTodayString();
       const code = generateRoomCode();
-      const room = createRoom(code, puzzle);
+      const seed = (puzzleType === "new") ? `${today}-${code}` : today;
+      const puzzle = await getPuzzle(seed);
+      const room = createRoom(code, puzzle, puzzleType || "daily");
 
       room.mode = mode || "collaborative";
       room.players[socket.id] = { name: playerName, color: PLAYER_COLORS[0] };
       room.scores[playerName] = 0;
 
       socket.join(code);
-      console.log(`Room ${code} created by ${playerName}`);
+      console.log(`Room ${code} created by ${playerName} (${room.puzzleType} puzzle, seed: ${seed})`);
 
       callback({
         success: true,
@@ -116,6 +130,7 @@ io.on("connection", (socket) => {
           maxScore: puzzle.max_score,
         },
         mode: room.mode,
+        puzzleType: room.puzzleType,
       });
     } catch (err) {
       callback({ success: false, error: err.message });
@@ -170,6 +185,7 @@ io.on("connection", (socket) => {
           maxScore: room.puzzle.max_score,
         },
         mode: room.mode,
+        puzzleType: room.puzzleType,
         foundWords: room.foundWords,
         scores: room.scores,
         opponent: opponent ? { name: opponent.name, color: opponent.color } : null,
@@ -205,6 +221,7 @@ io.on("connection", (socket) => {
         maxScore: room.puzzle.max_score,
       },
       mode: room.mode,
+      puzzleType: room.puzzleType,
       foundWords: room.foundWords,
       scores: room.scores,
       opponent: opponent ? { name: opponent.name, color: opponent.color } : null,
