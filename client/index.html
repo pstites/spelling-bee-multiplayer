@@ -313,6 +313,68 @@
       font-style: italic;
     }
 
+    /* ── Rank progress bar ───────────────────────────────────────────── */
+    #rank-progress {
+      padding: 8px 24px 6px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .rank-track-wrap {
+      position: relative;
+      height: 6px;
+      background: #e0e0e0;
+      border-radius: 3px;
+      overflow: visible;
+    }
+
+    .rank-fill {
+      position: absolute;
+      left: 0; top: 0;
+      height: 100%;
+      background: #f7da21;
+      border-radius: 3px;
+      transition: width 0.35s ease;
+      max-width: 100%;
+    }
+
+    .rank-tick {
+      position: absolute;
+      top: -4px;
+      width: 2px;
+      height: 14px;
+      background: #ccc;
+      transform: translateX(-50%);
+      border-radius: 1px;
+    }
+
+    .rank-tick.active { background: #333; }
+
+    .rank-labels {
+      position: relative;
+      height: 18px;
+      margin-top: 4px;
+    }
+
+    .rank-tick-label {
+      position: absolute;
+      top: 0;
+      font-size: 10px;
+      font-family: "Helvetica Neue", sans-serif;
+      color: #bbb;
+      white-space: nowrap;
+      transform: translateX(-50%);
+      line-height: 1;
+    }
+
+    .rank-tick-label.active {
+      color: #1a1a1a;
+      font-weight: 700;
+    }
+
+    @media (max-width: 500px) {
+      .rank-tick-label.hide-mobile { display: none; }
+    }
+
     /* ── Honeycomb area ──────────────────────────────────────────────── */
     .honeycomb-area {
       display: flex;
@@ -563,6 +625,12 @@
   </header>
 
   <div class="score-bar" id="score-bar"></div>
+  <div id="rank-progress">
+    <div id="rank-track-wrap" class="rank-track-wrap">
+      <div id="rank-fill" class="rank-fill"></div>
+    </div>
+    <div id="rank-labels" class="rank-labels"></div>
+  </div>
   <div id="reconnecting-banner"><span id="reconnecting-msg"></span></div>
 
   <div class="game-body">
@@ -933,6 +1001,54 @@ function updateHeader() {
   badge.className = "puzzle-type-badge" + (state.puzzleType === "new" ? " new" : "");
 }
 
+// Labels too close together at the low end to show on small screens
+const HIDE_MOBILE_RANKS = new Set(["Good Start", "Moving Up", "Good"]);
+
+function getCurrentProgressScore() {
+  if (state.mode === "collaborative") return state.scores["shared"] || 0;
+  const my  = state.scores[state.playerName]  || 0;
+  const opp = state.opponentName ? (state.scores[state.opponentName] || 0) : 0;
+  return my + opp;
+}
+
+function updateRankProgress() {
+  const trackWrap = document.getElementById("rank-track-wrap");
+  const fill      = document.getElementById("rank-fill");
+  const labelsEl  = document.getElementById("rank-labels");
+  if (!trackWrap || !fill || !labelsEl) return;
+
+  const score      = getCurrentProgressScore();
+  const fillPct    = maxScore > 0 ? Math.min(score / maxScore, 1) * 100 : 0;
+  const currentRank = getRank(score);
+
+  fill.style.width = fillPct + "%";
+
+  // Rebuild ticks and labels
+  trackWrap.querySelectorAll(".rank-tick").forEach(t => t.remove());
+  labelsEl.innerHTML = "";
+
+  RANKS.forEach((r, i) => {
+    const isActive = r.label === currentRank;
+    const leftPct  = (r.pct * 100) + "%";
+
+    const tick = document.createElement("div");
+    tick.className = "rank-tick" + (isActive ? " active" : "");
+    tick.style.left = leftPct;
+    trackWrap.appendChild(tick);
+
+    const label = document.createElement("div");
+    label.className = "rank-tick-label" +
+      (isActive ? " active" : "") +
+      (HIDE_MOBILE_RANKS.has(r.label) ? " hide-mobile" : "");
+    label.style.left = leftPct;
+    label.textContent = r.label;
+    // Anchor first label left, last label right so they don't clip
+    if (i === 0)              label.style.transform = "translateX(0)";
+    if (i === RANKS.length - 1) label.style.transform = "translateX(-100%)";
+    labelsEl.appendChild(label);
+  });
+}
+
 function updateScoreBar() {
   const bar = document.getElementById("score-bar");
   bar.innerHTML = "";
@@ -976,6 +1092,8 @@ function updateScoreBar() {
     rankEl.textContent = getRank(totalScore);
     bar.appendChild(rankEl);
   }
+
+  updateRankProgress();
 }
 
 // ── Word list ──────────────────────────────────────────────────────────────
