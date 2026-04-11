@@ -1087,6 +1087,9 @@ socket.on("opponent_disconnected", ({ playerName }) => {
 
 socket.on("game_resumed", ({ playerName }) => {
   hideReconnectingBanner();
+  if (!state.gameActive) {
+    startGame();
+  }
   showMessage(`${playerName} reconnected!`, "success");
 });
 
@@ -1100,12 +1103,21 @@ socket.on("session_ended", ({ reason }) => {
 socket.on("connect", () => {
   if (!state.roomCode || !state.playerName) return;
 
-  // Waiting room: re-register the host's new socket ID silently
+  // Waiting room: re-register the host's new socket ID, and transition to
+  // the game screen if the second player joined while the host was away
   if (!state.gameActive) {
     socket.emit("join_room", { roomCode: state.roomCode, playerName: state.playerName }, (res) => {
       if (!res.success) {
         alert((res.error || "Session ended.") + " Returning to lobby.");
         location.reload();
+        return;
+      }
+      if (res.opponent) {
+        state.foundWords = res.foundWords || {};
+        state.scores     = res.scores     || {};
+        state.opponentName  = res.opponent.name;
+        state.opponentColor = res.opponent.color;
+        startGame();
       }
     });
     return;
