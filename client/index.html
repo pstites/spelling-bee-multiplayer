@@ -253,6 +253,11 @@
       font-family: "Helvetica Neue", sans-serif;
     }
 
+    .copy-invite-btn {
+      width: auto;
+      padding: 12px 28px;
+    }
+
     .pulse {
       width: 12px;
       height: 12px;
@@ -610,6 +615,7 @@
 <div id="waiting">
   <div class="waiting-label">Share this code with your opponent</div>
   <div class="waiting-code" id="waiting-code">----</div>
+  <button class="lobby-btn copy-invite-btn" id="copy-invite-btn" onclick="copyInvite()">Copy Invite</button>
   <div class="pulse"></div>
   <div class="waiting-label">Waiting for opponent to join...</div>
 </div>
@@ -803,6 +809,25 @@ function showWaiting(code) {
   document.getElementById("lobby").style.display = "none";
   document.getElementById("waiting").style.display = "flex";
   document.getElementById("waiting-code").textContent = code;
+}
+
+function copyInvite() {
+  const code = document.getElementById("waiting-code").textContent;
+  const msg  = `Let's play Spelling Bee together! Join my game at https://spelling-bee-multiplayer.netlify.app — enter room code ${code}`;
+  const btn  = document.getElementById("copy-invite-btn");
+
+  const confirm = () => {
+    btn.textContent = "Copied!";
+    setTimeout(() => { btn.textContent = "Copy Invite"; }, 2000);
+  };
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(msg).then(confirm).catch(() => {
+      prompt("Copy this invite:", msg);
+    });
+  } else {
+    prompt("Copy this invite:", msg);
+  }
 }
 
 function startGame() {
