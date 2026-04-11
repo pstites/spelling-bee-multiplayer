@@ -1019,20 +1019,44 @@ socket.on("mode_changed", ({ mode, scores }) => {
   updateScoreBar();
 });
 
+// ── Reconnecting banner helpers ────────────────────────────────────────────
+const REJOIN_TIMEOUT_S = 60;
+let reconnectCountdown = null;
+
+function showReconnectingBanner(baseMsg) {
+  let remaining = REJOIN_TIMEOUT_S;
+  const msg = document.getElementById("reconnecting-msg");
+  const banner = document.getElementById("reconnecting-banner");
+
+  const update = () => { msg.textContent = `${baseMsg} (${remaining}s)`; };
+  update();
+  banner.classList.add("show");
+
+  clearInterval(reconnectCountdown);
+  reconnectCountdown = setInterval(() => {
+    remaining -= 1;
+    update();
+    if (remaining <= 0) clearInterval(reconnectCountdown);
+  }, 1000);
+}
+
+function hideReconnectingBanner() {
+  clearInterval(reconnectCountdown);
+  document.getElementById("reconnecting-banner").classList.remove("show");
+}
+
 // Opponent disconnected — show banner but keep game playable
 socket.on("opponent_disconnected", ({ playerName }) => {
-  document.getElementById("reconnecting-msg").textContent =
-    `${playerName} disconnected — waiting to reconnect...`;
-  document.getElementById("reconnecting-banner").classList.add("show");
+  showReconnectingBanner(`${playerName} disconnected — waiting to reconnect...`);
 });
 
 socket.on("game_resumed", ({ playerName }) => {
-  document.getElementById("reconnecting-banner").classList.remove("show");
+  hideReconnectingBanner();
   showMessage(`${playerName} reconnected!`, "success");
 });
 
 socket.on("session_ended", ({ reason }) => {
-  document.getElementById("reconnecting-banner").classList.remove("show");
+  hideReconnectingBanner();
   alert(reason + " The session has ended.");
   location.reload();
 });
@@ -1051,7 +1075,7 @@ socket.on("connect", () => {
       renderWordList();
       updateScoreBar();
       updateHeader();
-      document.getElementById("reconnecting-banner").classList.remove("show");
+      hideReconnectingBanner();
       showMessage("Reconnected!", "success");
     } else {
       // Room ended while we were away
@@ -1064,8 +1088,7 @@ socket.on("connect", () => {
 // Show self-reconnecting banner if our own socket drops mid-game
 socket.on("disconnect", () => {
   if (!state.gameActive) return;
-  document.getElementById("reconnecting-msg").textContent = "Reconnecting...";
-  document.getElementById("reconnecting-banner").classList.add("show");
+  showReconnectingBanner("Reconnecting...");
 });
 
 // ── Pangram overlay ────────────────────────────────────────────────────────
