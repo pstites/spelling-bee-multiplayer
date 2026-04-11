@@ -119,7 +119,7 @@ io.on("connection", (socket) => {
       room.scores[playerName] = 0;
 
       socket.join(code);
-      console.log(`Room ${code} created by ${playerName} (${room.puzzleType} puzzle, seed: ${seed}), host socket: ${socket.id}`);
+      console.log(`Room ${code} created by ${playerName} (${room.puzzleType} puzzle, seed: ${seed})`);
 
       callback({
         success: true,
@@ -143,8 +143,6 @@ io.on("connection", (socket) => {
     const code = roomCode.toUpperCase();
     const room = rooms[code];
 
-    console.log(`join_room: socket=${socket.id} name=${playerName} code=${code} roomExists=${!!room}`);
-
     if (!room) {
       return callback({ success: false, error: "Room not found." });
     }
@@ -163,7 +161,6 @@ io.on("connection", (socket) => {
         delete room.players[oldSocketId];
         room.players[socket.id] = existingEntry;
         socket.join(code);
-        console.log(`${playerName} re-registered in waiting room ${code}`);
         return callback({
           success: true,
           roomCode: code,
@@ -198,7 +195,7 @@ io.on("connection", (socket) => {
         room.disconnectedPlayer = null;
 
         io.to(code).emit("game_resumed", { playerName });
-        console.log(`${playerName} rejoined room ${code} (gameStarted path)`);
+        console.log(`${playerName} rejoined room ${code}`);
 
         const opponent = Object.values(room.players).find(p => p.name !== playerName);
         return callback({
@@ -394,7 +391,6 @@ io.on("connection", (socket) => {
   // ── Disconnect ─────────────────────────────────────────────────────────────
   socket.on("disconnect", () => {
     const room = getRoomForSocket(socket.id);
-    console.log(`Socket disconnected: ${socket.id} — foundRoom=${!!room}${room ? ` (${room.code}, gameStarted=${room.gameStarted})` : ""}`);
     if (!room) return;
 
     const player = room.players[socket.id];
@@ -416,7 +412,7 @@ io.on("connection", (socket) => {
 
     // End the session after 2 minutes if they don't rejoin
     room.rejoinTimer = setTimeout(() => {
-      console.log(`Room ${room.code} deleted — ${player.name} did not rejoin within 60s`);
+      console.log(`Room ${room.code} closed — ${player.name} did not rejoin`);
       io.to(room.code).emit("session_ended", {
         reason: `${player.name} did not reconnect in time.`,
       });
