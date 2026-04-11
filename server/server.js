@@ -181,6 +181,43 @@ io.on("connection", (socket) => {
         });
       }
 
+      // Player reconnecting to an active game — covers the case where they disconnected
+      // during the waiting room before gameStarted was set (so disconnectedPlayer is null)
+      if (room.gameStarted) {
+        const oldSocketId = Object.keys(room.players).find(
+          (id) => room.players[id].name === playerName
+        );
+        delete room.players[oldSocketId];
+        room.players[socket.id] = existingEntry;
+        socket.join(code);
+
+        if (room.rejoinTimer) {
+          clearTimeout(room.rejoinTimer);
+          room.rejoinTimer = null;
+        }
+        room.disconnectedPlayer = null;
+
+        io.to(code).emit("game_resumed", { playerName });
+        console.log(`${playerName} rejoined room ${code} (gameStarted path)`);
+
+        const opponent = Object.values(room.players).find(p => p.name !== playerName);
+        return callback({
+          success: true,
+          roomCode: code,
+          color: existingEntry.color,
+          puzzle: {
+            letters: room.puzzle.letters,
+            center: room.puzzle.center,
+            maxScore: room.puzzle.max_score,
+          },
+          mode: room.mode,
+          puzzleType: room.puzzleType,
+          foundWords: room.foundWords,
+          scores: room.scores,
+          opponent: opponent ? { name: opponent.name, color: opponent.color } : null,
+        });
+      }
+
       if (room.disconnectedPlayer !== playerName) {
         return callback({ success: false, error: "That name is already taken in this room." });
       }
