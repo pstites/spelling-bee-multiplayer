@@ -554,7 +554,7 @@
         <span id="word-letters"></span>
       </div>
 
-      <svg class="honeycomb-svg" id="honeycomb" width="300" height="280" viewBox="0 0 300 280"></svg>
+      <svg class="honeycomb-svg" id="honeycomb" width="270" height="252" viewBox="0 0 270 252"></svg>
 
       <div class="message" id="message"></div>
 
@@ -730,23 +730,29 @@ function startGame() {
 }
 
 // ── Honeycomb ──────────────────────────────────────────────────────────────
-// Positions: center + 6 surrounding in a hex grid
+// Flat-top hexagons (⬡ orientation) with shared edges.
+// For circumradius R, adjacent center-to-center distance = R√3.
+// 6 neighbor directions from center: top, upper-right, lower-right,
+//   bottom, lower-left, upper-left — all at distance R√3.
+const HEX_R = 44;
+const HEX_D = HEX_R * Math.sqrt(3); // center-to-center distance ≈ 76.2
+const HEX_CX = 135, HEX_CY = 125;  // center of the flower
+
 const HEX_POSITIONS = [
-  { x: 150, y: 140 },  // center
-  { x: 150, y: 60  },  // top
-  { x: 216, y: 100 },  // top-right
-  { x: 216, y: 180 },  // bottom-right
-  { x: 150, y: 220 },  // bottom
-  { x:  84, y: 180 },  // bottom-left
-  { x:  84, y: 100 },  // top-left
+  { x: HEX_CX,               y: HEX_CY              },  // center
+  { x: HEX_CX,               y: HEX_CY - HEX_D      },  // top
+  { x: HEX_CX + 3*HEX_R/2,  y: HEX_CY - HEX_D/2    },  // upper-right
+  { x: HEX_CX + 3*HEX_R/2,  y: HEX_CY + HEX_D/2    },  // lower-right
+  { x: HEX_CX,               y: HEX_CY + HEX_D      },  // bottom
+  { x: HEX_CX - 3*HEX_R/2,  y: HEX_CY + HEX_D/2    },  // lower-left
+  { x: HEX_CX - 3*HEX_R/2,  y: HEX_CY - HEX_D/2    },  // upper-left
 ];
 
-const HEX_SIZE = 36; // radius of hexagon
-
+// Flat-top: vertices at 0°, 60°, 120°, 180°, 240°, 300°
 function hexPath(cx, cy, r) {
   const pts = [];
   for (let i = 0; i < 6; i++) {
-    const angle = (Math.PI / 180) * (60 * i - 30);
+    const angle = (Math.PI / 3) * i;
     pts.push(`${cx + r * Math.cos(angle)},${cy + r * Math.sin(angle)}`);
   }
   return "M" + pts.join("L") + "Z";
@@ -765,7 +771,7 @@ function buildHoneycomb() {
     g.style.cursor = "pointer";
 
     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    path.setAttribute("d", hexPath(x, y, HEX_SIZE));
+    path.setAttribute("d", hexPath(x, y, HEX_R));
     path.classList.add("hex-bg", isCenter ? "hex-bg-center" : "hex-bg-outer");
 
     const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
