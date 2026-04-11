@@ -153,6 +153,32 @@ io.on("connection", (socket) => {
     );
 
     if (existingEntry) {
+      // Host reconnecting during the waiting room (game not yet started, only one player)
+      if (!room.gameStarted && Object.keys(room.players).length === 1) {
+        const oldSocketId = Object.keys(room.players).find(
+          (id) => room.players[id].name === playerName
+        );
+        delete room.players[oldSocketId];
+        room.players[socket.id] = existingEntry;
+        socket.join(code);
+        console.log(`${playerName} re-registered in waiting room ${code}`);
+        return callback({
+          success: true,
+          roomCode: code,
+          color: existingEntry.color,
+          puzzle: {
+            letters: room.puzzle.letters,
+            center: room.puzzle.center,
+            maxScore: room.puzzle.max_score,
+          },
+          mode: room.mode,
+          puzzleType: room.puzzleType,
+          foundWords: room.foundWords,
+          scores: room.scores,
+          opponent: null,
+        });
+      }
+
       if (room.disconnectedPlayer !== playerName) {
         return callback({ success: false, error: "That name is already taken in this room." });
       }

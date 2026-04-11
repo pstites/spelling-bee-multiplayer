@@ -1098,7 +1098,20 @@ socket.on("session_ended", ({ reason }) => {
 
 // Auto-rejoin when socket reconnects (handles phone sleep / app switching)
 socket.on("connect", () => {
-  if (!state.gameActive || !state.roomCode || !state.playerName) return;
+  if (!state.roomCode || !state.playerName) return;
+
+  // Waiting room: re-register the host's new socket ID silently
+  if (!state.gameActive) {
+    socket.emit("join_room", { roomCode: state.roomCode, playerName: state.playerName }, (res) => {
+      if (!res.success) {
+        alert((res.error || "Session ended.") + " Returning to lobby.");
+        location.reload();
+      }
+    });
+    return;
+  }
+
+  // Mid-game rejoin: restore full game state
   socket.emit("join_room", { roomCode: state.roomCode, playerName: state.playerName }, (res) => {
     if (res.success) {
       state.foundWords = res.foundWords || {};
