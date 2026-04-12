@@ -547,6 +547,96 @@
       cursor: pointer;
     }
 
+    /* ── Genius overlay ──────────────────────────────────────────────── */
+    #genius-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #genius-overlay.show { display: flex; }
+
+    .genius-card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 40px 48px;
+      text-align: center;
+      max-width: 360px;
+      animation: pop 0.3s ease;
+      border-top: 6px solid #f7da21;
+    }
+
+    .genius-emoji { font-size: 56px; margin-bottom: 12px; }
+    .genius-rank  { font-size: 28px; font-weight: 700; color: #c89600; margin-bottom: 8px; }
+    .genius-msg   { font-size: 16px; color: #555; font-family: "Helvetica Neue", sans-serif; }
+    .genius-close {
+      margin-top: 24px;
+      padding: 10px 28px;
+      background: #1a1a1a;
+      color: #fff;
+      border: none;
+      border-radius: 24px;
+      font-size: 14px;
+      font-family: "Helvetica Neue", sans-serif;
+      cursor: pointer;
+    }
+
+    /* ── Queen Bee overlay ────────────────────────────────────────────── */
+    #queenbee-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.65);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #queenbee-overlay.show { display: flex; }
+
+    .queenbee-card {
+      background: linear-gradient(145deg, #1a0a3c 0%, #3d1a6e 100%);
+      border-radius: 16px;
+      padding: 40px 48px;
+      text-align: center;
+      max-width: 380px;
+      animation: royal-pop 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      box-shadow: 0 0 50px rgba(212, 175, 55, 0.45), 0 8px 32px rgba(0,0,0,0.5);
+    }
+
+    @keyframes royal-pop {
+      0%   { transform: scale(0.6) rotate(-3deg); opacity: 0; }
+      70%  { transform: scale(1.06) rotate(1deg); opacity: 1; }
+      100% { transform: scale(1)   rotate(0deg); opacity: 1; }
+    }
+
+    .queenbee-emoji { font-size: 64px; margin-bottom: 12px; }
+    .queenbee-rank  {
+      font-size: 30px;
+      font-weight: 700;
+      color: #d4af37;
+      margin-bottom: 8px;
+      font-family: Georgia, serif;
+      letter-spacing: 1px;
+    }
+    .queenbee-msg   { font-size: 16px; color: #d9bfff; font-family: "Helvetica Neue", sans-serif; }
+    .queenbee-close {
+      margin-top: 24px;
+      padding: 10px 28px;
+      background: #d4af37;
+      color: #1a0a3c;
+      border: none;
+      border-radius: 24px;
+      font-size: 14px;
+      font-family: "Helvetica Neue", sans-serif;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
     /* ── Reconnecting banner ─────────────────────────────────────────── */
     #reconnecting-banner {
       display: none;
@@ -675,6 +765,26 @@
   </div>
 </div>
 
+<!-- ── Genius overlay ────────────────────────────────────────────────────── -->
+<div id="genius-overlay">
+  <div class="genius-card">
+    <div class="genius-emoji">🧠</div>
+    <div class="genius-rank">Genius</div>
+    <div class="genius-msg" id="genius-msg"></div>
+    <button class="genius-close" onclick="closeGenius()">Keep playing</button>
+  </div>
+</div>
+
+<!-- ── Queen Bee overlay ──────────────────────────────────────────────────── -->
+<div id="queenbee-overlay">
+  <div class="queenbee-card">
+    <div class="queenbee-emoji">👑</div>
+    <div class="queenbee-rank">Queen Bee</div>
+    <div class="queenbee-msg" id="queenbee-msg"></div>
+    <button class="queenbee-close" onclick="closeQueenBee()">Keep playing</button>
+  </div>
+</div>
+
 <!-- ── Footer ────────────────────────────────────────────────────────────── -->
 <footer style="
   text-align: center;
@@ -707,6 +817,8 @@ let state = {
   scores: {},
   myScore: 0,
   gameActive: false,
+  geniusCelebrated: false,
+  queenBeeCelebrated: false,
 };
 
 let selectedMode = "collaborative";
@@ -832,6 +944,8 @@ function copyInvite() {
 
 function startGame() {
   state.gameActive = true;
+  state.geniusCelebrated = false;
+  state.queenBeeCelebrated = false;
   document.getElementById("lobby").style.display = "none";
   document.getElementById("waiting").style.display = "none";
   document.getElementById("game").style.display = "flex";
@@ -1172,10 +1286,12 @@ socket.on("players_ready", ({ players }) => {
 });
 
 socket.on("word_found", ({ word, playerName, color, score, isPangram, scores }) => {
+  const prevScore = getCurrentProgressScore();
   state.foundWords[word] = { word, playerName, color, score, isPangram };
   state.scores = scores;
   renderWordList();
   updateScoreBar();
+  checkRankCelebrations(prevScore, playerName);
 });
 
 socket.on("pangram_found", ({ word, playerName, mode }) => {
@@ -1297,6 +1413,45 @@ socket.on("disconnect", () => {
 // ── Pangram overlay ────────────────────────────────────────────────────────
 function closePangram() {
   document.getElementById("pangram-overlay").classList.remove("show");
+}
+
+// ── Rank celebration overlays ──────────────────────────────────────────────
+function checkRankCelebrations(prevScore, playerName) {
+  if (maxScore === 0) return;
+  const newScore = getCurrentProgressScore();
+  const geniusThreshold = maxScore * 0.70;
+
+  if (!state.geniusCelebrated && prevScore < geniusThreshold && newScore >= geniusThreshold) {
+    state.geniusCelebrated = true;
+    const isMe = playerName === state.playerName;
+    if (state.mode === "competitive") {
+      document.getElementById("genius-msg").textContent =
+        isMe ? "You reached Genius! Your brain is on fire. 🔥" : `${playerName} reached Genius!`;
+    } else {
+      document.getElementById("genius-msg").textContent = "You've reached Genius together!";
+    }
+    document.getElementById("genius-overlay").classList.add("show");
+  }
+
+  if (!state.queenBeeCelebrated && prevScore < maxScore && newScore >= maxScore) {
+    state.queenBeeCelebrated = true;
+    const isMe = playerName === state.playerName;
+    if (state.mode === "competitive") {
+      document.getElementById("queenbee-msg").textContent =
+        isMe ? "You found every word! You are the Queen Bee! 🌟" : `${playerName} found the last word — Queen Bee!`;
+    } else {
+      document.getElementById("queenbee-msg").textContent = "Every word found. You are both Queen Bees! 🌟";
+    }
+    document.getElementById("queenbee-overlay").classList.add("show");
+  }
+}
+
+function closeGenius() {
+  document.getElementById("genius-overlay").classList.remove("show");
+}
+
+function closeQueenBee() {
+  document.getElementById("queenbee-overlay").classList.remove("show");
 }
 
 // ── Mode toggle ────────────────────────────────────────────────────────────
