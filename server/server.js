@@ -87,9 +87,80 @@ function createRoom(code, puzzle, puzzleType) {
     scores: {},                  // playerName -> score
     disconnectedPlayer: null,    // name of player currently away
     rejoinTimer: null,
+    gameTimer: null,             // setInterval handle for competitive countdown
+    timeRemaining: 0,            // seconds remaining in competitive game
     gameStarted: false,          // true once both players have joined
   };
   return rooms[code];
+}
+
+// ── Competitive timer ─────────────────────────────────────────────────────────
+
+const COMPETITIVE_DURATION_S = 10 * 60; // 600 seconds
+
+function startCompetitiveTimer(room) {
+  room.timeRemaining = COMPETITIVE_DURATION_S;
+
+  room.gameTimer = setInterval(() => {
+    room.timeRemaining -= 1;
+
+    if (room.timeRemaining === 10) {
+      io.to(room.code).emit("timer_warning");
+    }
+
+    if (room.timeRemaining <= 0) {
+      clearInterval(room.gameTimer);
+      room.gameTimer = null;
+      endCompetitiveGame(room);
+    }
+  }, 1000);
+}
+
+function endCompetitiveGame(room) {
+  const words = Object.values(room.foundWords);
+
+  const playerMap = {};
+  for (const player of Object.values(room.players)) {
+    playerMap[player.name] = {
+      name: player.name,
+      color: player.color,
+      score: room.scores[player.name] || 0,
+      wordsFound: 0,
+    };
+  }
+  for (const entry of words) {
+    if (playerMap[entry.playerName]) {
+      playerMap[entry.playerName].wordsFound++;
+    }
+  }
+
+  const playerStats = Object.values(playerMap);
+  const [p1, p2] = playerStats;
+  let winner;
+  if (!p2) {
+    winner = p1.name;
+  } else if (p1.score > p2.score) {
+    winner = p1.name;
+  } else if (p2.score > p1.score) {
+    winner = p2.name;
+  } else {
+    winner = "tie";
+  }
+
+  const pangrams = words
+    .filter(w => w.isPangram)
+    .map(w => ({ word: w.word, playerName: w.playerName, color: w.color }));
+
+  let longestWord = null;
+  for (const entry of words) {
+    if (!longestWord || entry.word.length > longestWord.word.length ||
+        (entry.word.length === longestWord.word.length && entry.word < longestWord.word)) {
+      longestWord = { word: entry.word, playerName: entry.playerName, color: entry.color };
+    }
+  }
+
+  io.to(room.code).emit("game_ended", { mode: "competitive", winner, playerStats, pangrams, longestWord });
+  delete rooms[room.code];
 }
 
 function getRoomForSocket(socketId) {
@@ -212,6 +283,7 @@ io.on("connection", (socket) => {
           foundWords: room.foundWords,
           scores: room.scores,
           opponent: opponent ? { name: opponent.name, color: opponent.color } : null,
+          timeRemaining: room.mode === "competitive" ? room.timeRemaining : undefined,
         });
       }
 
@@ -252,6 +324,7 @@ io.on("connection", (socket) => {
         foundWords: room.foundWords,
         scores: room.scores,
         opponent: opponent ? { name: opponent.name, color: opponent.color } : null,
+        timeRemaining: room.mode === "competitive" ? room.timeRemaining : undefined,
       });
     }
 
@@ -272,8 +345,16 @@ io.on("connection", (socket) => {
     // Both players are now present — game is underway
     room.gameStarted = true;
 
+    if (room.mode === "competitive") {
+      startCompetitiveTimer(room);
+    }
+
     // Notify the first player that their opponent has joined
-    socket.to(code).emit("opponent_joined", { playerName, color });
+    socket.to(code).emit("opponent_joined", {
+      playerName,
+      color,
+      timeRemaining: room.mode === "competitive" ? room.timeRemaining : undefined,
+    });
 
     console.log(`${playerName} joined room ${code}`);
 
@@ -291,6 +372,7 @@ io.on("connection", (socket) => {
       foundWords: room.foundWords,
       scores: room.scores,
       opponent: opponent ? { name: opponent.name, color: opponent.color } : null,
+      timeRemaining: room.mode === "competitive" ? room.timeRemaining : undefined,
     });
 
     // Tell the new player who they're playing with
@@ -362,6 +444,68 @@ io.on("connection", (socket) => {
     callback({ success: true });
   });
 
+  // ── End game ───────────────────────────────────────────────────────────────
+  socket.on("end_game", () => {
+    const room = getRoomForSocket(socket.id);
+    if (!room || !room.gameStarted || room.mode !== "collaborative") return;
+
+    const words = Object.values(room.foundWords);
+    const totalScore = room.scores["shared"] || 0;
+
+    // Per-player contribution stats
+    const playerMap = {};
+    for (const player of Object.values(room.players)) {
+      playerMap[player.name] = { name: player.name, color: player.color, wordsFound: 0, pointsContributed: 0 };
+    }
+    for (const entry of words) {
+      if (playerMap[entry.playerName]) {
+        playerMap[entry.playerName].wordsFound++;
+        playerMap[entry.playerName].pointsContributed += entry.score;
+      }
+    }
+
+    const pangrams = words
+      .filter(w => w.isPangram)
+      .map(w => ({ word: w.word, playerName: w.playerName, color: w.color }));
+
+    let longestWord = null;
+    for (const entry of words) {
+      if (!longestWord || entry.word.length > longestWord.word.length ||
+          (entry.word.length === longestWord.word.length && entry.word < longestWord.word)) {
+        longestWord = { word: entry.word, playerName: entry.playerName, color: entry.color };
+      }
+    }
+
+    const RANK_THRESHOLDS = [
+      { label: "Beginner", pct: 0 }, { label: "Good Start", pct: 0.02 },
+      { label: "Moving Up", pct: 0.05 }, { label: "Good", pct: 0.08 },
+      { label: "Solid", pct: 0.15 }, { label: "Nice", pct: 0.25 },
+      { label: "Great", pct: 0.40 }, { label: "Amazing", pct: 0.50 },
+      { label: "Genius", pct: 0.70 }, { label: "Queen Bee", pct: 1.00 },
+    ];
+    const pct = room.puzzle.max_score > 0 ? totalScore / room.puzzle.max_score : 0;
+    let rank = "Beginner";
+    for (const r of RANK_THRESHOLDS) {
+      if (pct >= r.pct) rank = r.label;
+    }
+
+    const totalWords = words.length;
+
+    io.to(room.code).emit("game_ended", {
+      mode: "collaborative",
+      totalScore,
+      maxScore: room.puzzle.max_score,
+      rank,
+      totalWords,
+      playerStats: Object.values(playerMap),
+      pangrams,
+      longestWord,
+    });
+
+    console.log(`Room ${room.code} ended by ${room.players[socket.id]?.name} — ${totalWords} words, ${totalScore} pts, rank: ${rank}`);
+    delete rooms[room.code];
+  });
+
   // ── Toggle mode ────────────────────────────────────────────────────────────
   socket.on("toggle_mode", (_, callback) => {
     const room = getRoomForSocket(socket.id);
@@ -410,9 +554,14 @@ io.on("connection", (socket) => {
       playerName: player.name,
     });
 
-    // End the session after 2 minutes if they don't rejoin
+    // End the session after 3 minutes if they don't rejoin
+    // Competitive timer keeps running during disconnect (per spec)
     room.rejoinTimer = setTimeout(() => {
       console.log(`Room ${room.code} closed — ${player.name} did not rejoin`);
+      if (room.gameTimer) {
+        clearInterval(room.gameTimer);
+        room.gameTimer = null;
+      }
       io.to(room.code).emit("session_ended", {
         reason: `${player.name} did not reconnect in time.`,
       });

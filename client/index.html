@@ -86,24 +86,16 @@
       border-radius: 50%;
     }
 
-    .mode-toggle {
-      background: none;
+    .mode-label {
       border: 1px solid #ccc;
       border-radius: 20px;
       padding: 4px 14px;
       font-size: 12px;
-      font-family: "Helvetica Neue", sans-serif;
-      cursor: pointer;
       color: #555;
-      transition: all 0.2s;
+      white-space: nowrap;
     }
 
-    .mode-toggle:hover {
-      border-color: #888;
-      color: #1a1a1a;
-    }
-
-    .mode-toggle.competitive {
+    .mode-label.competitive {
       border-color: #e8821a;
       color: #e8821a;
     }
@@ -226,6 +218,75 @@
       border-color: #f7da21;
       background: #fffbe6;
       font-weight: 700;
+    }
+
+    .mode-cards {
+      display: flex;
+      gap: 12px;
+    }
+
+    .mode-card {
+      flex: 1;
+      padding: 18px 12px 16px;
+      border: 2px solid #e0e0e0;
+      border-radius: 14px;
+      background: #fff;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      font-family: "Helvetica Neue", sans-serif;
+      user-select: none;
+    }
+
+    .mode-card:hover {
+      border-color: #bbb;
+      background: #fafafa;
+    }
+
+    .mode-card.selected {
+      border-color: #f7da21;
+      background: #fffbe6;
+    }
+
+    .mode-card[data-mode="competitive"].selected {
+      border-color: #e8821a;
+      background: #fff8f0;
+    }
+
+    .mode-card-icon {
+      font-size: 28px;
+      line-height: 1;
+    }
+
+    .mode-card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin-top: 2px;
+    }
+
+    .mode-card-pills {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      margin-top: 4px;
+    }
+
+    .mode-card-pill {
+      font-size: 11px;
+      color: #555;
+      background: #f0f0f0;
+      border-radius: 20px;
+      padding: 2px 8px;
+      white-space: nowrap;
+    }
+
+    .mode-card.selected .mode-card-pill {
+      background: rgba(0,0,0,0.07);
     }
 
     /* ── Waiting screen ──────────────────────────────────────────────── */
@@ -668,6 +729,311 @@
       header { padding: 10px 16px; }
       .header-title { font-size: 16px; }
     }
+
+    /* ── End Game button ─────────────────────────────────────────────── */
+    .end-game-btn {
+      display: none;
+      margin-top: 6px;
+      padding: 6px 18px;
+      border-radius: 20px;
+      border: 1px solid #ddd;
+      background: transparent;
+      font-family: "Helvetica Neue", sans-serif;
+      font-size: 12px;
+      color: #bbb;
+      cursor: pointer;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .end-game-btn.visible { display: block; }
+    .end-game-btn:hover { color: #888; border-color: #aaa; }
+
+    /* ── Game recap overlay ──────────────────────────────────────────── */
+    #recap-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.72);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    #recap-overlay.show { display: flex; }
+
+    .recap-card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 36px 40px;
+      max-width: 420px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      animation: pop 0.35s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .recap-header { text-align: center; }
+    .recap-emoji  { font-size: 48px; margin-bottom: 6px; }
+    .recap-title  { font-size: 26px; font-weight: 700; }
+    .recap-subtitle {
+      font-size: 14px;
+      color: #888;
+      font-family: "Helvetica Neue", sans-serif;
+      margin-top: 4px;
+    }
+
+    .recap-stats-row {
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+      border: 1px solid #e0e0e0;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .recap-stat {
+      flex: 1;
+      text-align: center;
+      padding: 14px 8px;
+    }
+    .recap-stat + .recap-stat { border-left: 1px solid #e0e0e0; }
+    .recap-stat-value {
+      font-size: 30px;
+      font-weight: 700;
+      color: #1a1a1a;
+      line-height: 1;
+    }
+    .recap-stat-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #aaa;
+      font-family: "Helvetica Neue", sans-serif;
+      margin-top: 4px;
+    }
+
+    .recap-divider { height: 1px; background: #e0e0e0; }
+
+    .recap-section-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #aaa;
+      font-family: "Helvetica Neue", sans-serif;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    .recap-player-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: "Helvetica Neue", sans-serif;
+      font-size: 14px;
+      padding: 5px 0;
+    }
+    .recap-player-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .recap-player-name { flex: 1; font-weight: 600; }
+    .recap-player-stats { color: #666; font-size: 13px; }
+
+    .recap-pangram-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 4px 0;
+      font-family: "Helvetica Neue", sans-serif;
+      font-size: 13px;
+    }
+    .recap-pangram-chip {
+      padding: 3px 10px;
+      border-radius: 10px;
+      font-weight: 700;
+      color: #fff;
+      font-size: 13px;
+      letter-spacing: 0.5px;
+    }
+    .recap-pangram-finder { color: #888; }
+
+    .recap-longest {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: "Helvetica Neue", sans-serif;
+    }
+    .recap-longest-meta { font-size: 13px; color: #888; }
+
+    .recap-play-again {
+      width: 100%;
+      padding: 14px;
+      background: #f7da21;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      font-family: "Helvetica Neue", sans-serif;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .recap-play-again:hover { background: #f0d000; }
+
+    @media (max-width: 480px) {
+      .recap-card { padding: 28px 24px; }
+    }
+
+    /* ── Competitive countdown timer ────────────────────────────────── */
+    .competitive-timer {
+      display: none;
+      font-family: "Helvetica Neue", sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      color: #1a1a1a;
+      letter-spacing: -0.5px;
+      font-variant-numeric: tabular-nums;
+      min-width: 52px;
+      text-align: right;
+    }
+    .competitive-timer.visible { display: block; }
+    .competitive-timer.warning {
+      color: #c0392b;
+      animation: timer-pulse 0.7s ease-in-out infinite;
+    }
+    @keyframes timer-pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.35; }
+    }
+
+    /* ── Room code badge in header ───────────────────────────────────── */
+    .header-room .room-code {
+      font-family: "Courier New", monospace;
+      font-weight: 700;
+      color: #1a1a1a;
+      letter-spacing: 3px;
+      background: #f0f0f0;
+      padding: 1px 6px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .header-room .room-code:hover { background: #e4e4e4; }
+
+    /* ── Lobby rejoin note ───────────────────────────────────────────── */
+    .lobby-note {
+      font-size: 12px;
+      color: #999;
+      font-family: "Helvetica Neue", sans-serif;
+      line-height: 1.5;
+      margin-top: -4px;
+    }
+
+    /* ── Exit confirmation modal ─────────────────────────────────────── */
+    #exit-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 300;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    #exit-modal.show { display: flex; }
+
+    .exit-modal-card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 32px 36px;
+      max-width: 360px;
+      width: 100%;
+      animation: pop 0.25s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      text-align: center;
+    }
+    .exit-modal-title {
+      font-size: 20px;
+      font-weight: 700;
+    }
+    .exit-modal-code-label {
+      font-size: 13px;
+      color: #888;
+      font-family: "Helvetica Neue", sans-serif;
+    }
+    .exit-modal-code-value {
+      display: block;
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: 8px;
+      font-family: "Courier New", monospace;
+      color: #1a1a1a;
+      margin: 6px 0 0;
+    }
+    .exit-modal-hint {
+      font-size: 13px;
+      color: #888;
+      font-family: "Helvetica Neue", sans-serif;
+      line-height: 1.5;
+      margin-top: -4px;
+    }
+    .exit-modal-stay {
+      width: 100%;
+      padding: 12px;
+      background: #f7da21;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 700;
+      font-family: "Helvetica Neue", sans-serif;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .exit-modal-stay:hover { background: #f0d000; }
+    .exit-modal-leave {
+      width: 100%;
+      padding: 10px;
+      background: transparent;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: "Helvetica Neue", sans-serif;
+      color: #999;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .exit-modal-leave:hover { border-color: #bbb; color: #666; }
+
+    /* ── Mobile room code toast ──────────────────────────────────────── */
+    #room-toast {
+      display: none;
+      position: fixed;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 400;
+      background: rgba(26,26,26,0.92);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 24px;
+      font-family: "Helvetica Neue", sans-serif;
+      font-size: 14px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+      animation: slide-down 0.25s ease;
+      max-width: calc(100vw - 32px);
+      text-align: center;
+      line-height: 1.4;
+    }
+    #room-toast.show { display: block; }
+    @keyframes slide-down {
+      0%   { opacity: 0; transform: translateX(-50%) translateY(-8px); }
+      100% { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
   </style>
 </head>
 <body>
@@ -682,9 +1048,25 @@
   <div class="lobby-card">
     <h2>Create a new game</h2>
     <input id="create-name" class="lobby-input" placeholder="Your name" maxlength="20">
-    <div class="mode-select">
-      <div class="mode-btn selected" data-mode="collaborative" onclick="selectMode(this)">🤝 Collaborative</div>
-      <div class="mode-btn" data-mode="competitive" onclick="selectMode(this)">⚔️ Competitive</div>
+    <div class="mode-cards">
+      <div class="mode-card selected" data-mode="collaborative" onclick="selectMode(this)">
+        <div class="mode-card-icon">🤝</div>
+        <div class="mode-card-title">Collaborative</div>
+        <div class="mode-card-pills">
+          <span class="mode-card-pill">Work together</span>
+          <span class="mode-card-pill">Shared score</span>
+          <span class="mode-card-pill">No time limit</span>
+        </div>
+      </div>
+      <div class="mode-card" data-mode="competitive" onclick="selectMode(this)">
+        <div class="mode-card-icon">⚔️</div>
+        <div class="mode-card-title">Competitive</div>
+        <div class="mode-card-pills">
+          <span class="mode-card-pill">Race to find words</span>
+          <span class="mode-card-pill">Individual scores</span>
+          <span class="mode-card-pill">10 min timer</span>
+        </div>
+      </div>
     </div>
     <div class="mode-select">
       <div class="mode-btn selected" data-type="daily" onclick="selectPuzzleType(this)">📅 Daily Puzzle</div>
@@ -694,7 +1076,8 @@
 
     <div class="lobby-divider">or</div>
 
-    <h2>Join a game</h2>
+    <h2>Join or Rejoin a game</h2>
+    <p class="lobby-note">Returning players: enter your original name and room code to rejoin within 12 hours.</p>
     <input id="join-name" class="lobby-input" placeholder="Your name" maxlength="20">
     <input id="join-code" class="lobby-input code" placeholder="ROOM" maxlength="4">
     <button class="lobby-btn" onclick="joinRoom()">Join Room</button>
@@ -715,9 +1098,10 @@
 
   <header>
     <div class="header-title">🐝 Spelling Bee</div>
-    <div class="header-room">Room <span id="header-room-code">----</span><span id="header-puzzle-type" class="puzzle-type-badge"></span></div>
+    <div class="header-room">Room <span id="header-room-code" class="room-code" title="Click to copy room code">----</span><span id="header-puzzle-type" class="puzzle-type-badge"></span></div>
     <div class="header-players" id="header-players"></div>
-    <button class="mode-toggle" id="mode-toggle" onclick="toggleMode()">Collaborative</button>
+    <span class="mode-label" id="mode-label">Collaborative</span>
+    <span class="competitive-timer" id="competitive-timer">10:00</span>
   </header>
 
   <div class="score-bar" id="score-bar"></div>
@@ -745,6 +1129,7 @@
         <button class="ctrl-btn" onclick="shuffleLetters()">Shuffle</button>
         <button class="ctrl-btn submit" id="submit-btn" onclick="submitWord()">Enter</button>
       </div>
+      <button class="end-game-btn" id="end-game-btn" onclick="endGame()">End Game</button>
     </div>
 
     <div class="word-list-area">
@@ -785,6 +1170,67 @@
   </div>
 </div>
 
+<!-- ── Recap overlay ─────────────────────────────────────────────────────── -->
+<div id="recap-overlay">
+  <div class="recap-card">
+
+    <div class="recap-header">
+      <div id="recap-emoji" class="recap-emoji"></div>
+      <div id="recap-title" class="recap-title"></div>
+      <div id="recap-subtitle" class="recap-subtitle"></div>
+    </div>
+
+    <div class="recap-stats-row" id="recap-stats-row">
+      <div class="recap-stat">
+        <div id="recap-score-value" class="recap-stat-value"></div>
+        <div id="recap-score-label" class="recap-stat-label"></div>
+      </div>
+      <div class="recap-stat">
+        <div id="recap-words-value" class="recap-stat-value"></div>
+        <div class="recap-stat-label">Words Found</div>
+      </div>
+    </div>
+
+    <div class="recap-divider"></div>
+
+    <div class="recap-section">
+      <div class="recap-section-title" id="recap-players-title">Contributions</div>
+      <div id="recap-players"></div>
+    </div>
+
+    <div id="recap-pangrams-divider" class="recap-divider"></div>
+    <div id="recap-pangrams-section">
+      <div class="recap-section-title">Pangrams</div>
+      <div id="recap-pangrams"></div>
+    </div>
+
+    <div id="recap-longest-divider" class="recap-divider"></div>
+    <div id="recap-longest-section">
+      <div class="recap-section-title">Longest Word</div>
+      <div id="recap-longest-word" class="recap-longest"></div>
+    </div>
+
+    <button class="recap-play-again" onclick="playAgain()">Play Again</button>
+  </div>
+</div>
+
+<!-- ── Exit confirmation modal ────────────────────────────────────────────── -->
+<div id="exit-modal">
+  <div class="exit-modal-card">
+    <div class="exit-modal-title">Leave the game?</div>
+    <div>
+      <div class="exit-modal-code-label">Your room code is</div>
+      <span id="exit-modal-code" class="exit-modal-code-value"></span>
+    </div>
+    <div class="exit-modal-hint">You can return anytime using "Join or Rejoin a game" on the main screen — enter your original name and this code.</div>
+    <button class="exit-modal-stay" onclick="closeExitModal()">Stay in game</button>
+    <button class="exit-modal-leave" onclick="confirmLeave()">Leave anyway</button>
+  </div>
+</div>
+
+<!-- ── Mobile room code toast ─────────────────────────────────────────────── -->
+<div id="room-toast"></div>
+
 <!-- ── Footer ────────────────────────────────────────────────────────────── -->
 <footer style="
   text-align: center;
@@ -824,6 +1270,38 @@ let state = {
 let selectedMode = "collaborative";
 let selectedPuzzleType = "daily";
 
+// ── Competitive timer ──────────────────────────────────────────────────────
+let competitiveTimer = null;
+
+function startCompetitiveCountdown(totalSeconds) {
+  clearInterval(competitiveTimer);
+  let remaining = Math.max(0, Math.round(totalSeconds));
+
+  function render() {
+    const el = document.getElementById("competitive-timer");
+    if (!el) return;
+    const mins = Math.floor(remaining / 60);
+    const secs = remaining % 60;
+    el.textContent = `${mins}:${secs.toString().padStart(2, "0")}`;
+  }
+
+  render();
+  competitiveTimer = setInterval(() => {
+    if (remaining > 0) remaining -= 1;
+    render();
+    if (remaining <= 0) {
+      clearInterval(competitiveTimer);
+      competitiveTimer = null;
+    }
+  }, 1000);
+}
+
+function updateTimerVisibility() {
+  const el = document.getElementById("competitive-timer");
+  if (!el) return;
+  el.classList.toggle("visible", state.mode === "competitive");
+}
+
 // ── Rank labels (NYT-style) ────────────────────────────────────────────────
 const RANKS = [
   { label: "Beginner",    pct: 0   },
@@ -852,7 +1330,7 @@ function getRank(score) {
 
 // ── Lobby ──────────────────────────────────────────────────────────────────
 function selectMode(el) {
-  el.parentElement.querySelectorAll(".mode-btn").forEach(b => b.classList.remove("selected"));
+  el.parentElement.querySelectorAll(".mode-card").forEach(b => b.classList.remove("selected"));
   el.classList.add("selected");
   selectedMode = el.dataset.mode;
 }
@@ -904,7 +1382,7 @@ function joinRoom() {
         state.opponentName = res.opponent.name;
         state.opponentColor = res.opponent.color;
       }
-      startGame();
+      startGame({ timeRemaining: res.timeRemaining });
     } else {
       showLobbyError(res.error);
     }
@@ -942,7 +1420,7 @@ function copyInvite() {
   }
 }
 
-function startGame() {
+function startGame(options = {}) {
   state.gameActive = true;
   state.geniusCelebrated = false;
   state.queenBeeCelebrated = false;
@@ -954,6 +1432,18 @@ function startGame() {
   updateHeader();
   updateScoreBar();
   renderWordList();
+  updateEndGameButton();
+  updateTimerVisibility();
+  if (state.mode === "competitive") {
+    startCompetitiveCountdown(options.timeRemaining ?? 600);
+  }
+  // Push a guard entry so the back button triggers popstate instead of navigating away
+  history.pushState({ gameGuard: true }, "", location.href);
+}
+
+function updateEndGameButton() {
+  const btn = document.getElementById("end-game-btn");
+  if (btn) btn.classList.toggle("visible", state.mode === "collaborative");
 }
 
 // ── Honeycomb ──────────────────────────────────────────────────────────────
@@ -1131,9 +1621,9 @@ function updateHeader() {
     container.appendChild(badge);
   });
 
-  const toggle = document.getElementById("mode-toggle");
-  toggle.textContent = state.mode === "collaborative" ? "Collaborative" : "Competitive";
-  toggle.className = "mode-toggle" + (state.mode === "competitive" ? " competitive" : "");
+  const label = document.getElementById("mode-label");
+  label.textContent = state.mode === "collaborative" ? "Collaborative" : "Competitive";
+  label.className = "mode-label" + (state.mode === "competitive" ? " competitive" : "");
 
   const badge = document.getElementById("header-puzzle-type");
   badge.textContent = state.puzzleType === "new" ? "New" : "Daily";
@@ -1265,11 +1755,11 @@ document.addEventListener("keydown", (e) => {
 });
 
 // ── Socket events ──────────────────────────────────────────────────────────
-socket.on("opponent_joined", ({ playerName, color }) => {
+socket.on("opponent_joined", ({ playerName, color, timeRemaining }) => {
   state.opponentName = playerName;
   state.opponentColor = color;
   if (document.getElementById("waiting").style.display !== "none") {
-    startGame();
+    startGame({ timeRemaining });
   }
   updateHeader();
   updateScoreBar();
@@ -1311,27 +1801,32 @@ socket.on("mode_changed", ({ mode, scores }) => {
   state.scores = scores;
   updateHeader();
   updateScoreBar();
+  updateEndGameButton();
+  updateTimerVisibility();
 });
 
 // ── Reconnecting banner helpers ────────────────────────────────────────────
 const REJOIN_TIMEOUT_S = 180;
 let reconnectCountdown = null;
 
-function showReconnectingBanner(baseMsg) {
-  let remaining = REJOIN_TIMEOUT_S;
+function showReconnectingBanner(baseMsg, showCountdown = true) {
   const msg = document.getElementById("reconnecting-msg");
   const banner = document.getElementById("reconnecting-banner");
-
-  const update = () => { msg.textContent = `${baseMsg} (${remaining}s)`; };
-  update();
-  banner.classList.add("show");
-
   clearInterval(reconnectCountdown);
-  reconnectCountdown = setInterval(() => {
-    remaining -= 1;
+
+  if (showCountdown) {
+    let remaining = REJOIN_TIMEOUT_S;
+    const update = () => { msg.textContent = `${baseMsg} (${remaining}s)`; };
     update();
-    if (remaining <= 0) clearInterval(reconnectCountdown);
-  }, 1000);
+    reconnectCountdown = setInterval(() => {
+      remaining -= 1;
+      update();
+      if (remaining <= 0) clearInterval(reconnectCountdown);
+    }, 1000);
+  } else {
+    msg.textContent = baseMsg;
+  }
+  banner.classList.add("show");
 }
 
 function hideReconnectingBanner() {
@@ -1341,7 +1836,10 @@ function hideReconnectingBanner() {
 
 // Opponent disconnected — show banner but keep game playable
 socket.on("opponent_disconnected", ({ playerName }) => {
-  showReconnectingBanner(`${playerName} disconnected — waiting to reconnect...`);
+  showReconnectingBanner(
+    `${playerName} disconnected. Room code: ${state.roomCode} — rejoin within 12 hours using "Rejoin a game".`,
+    false
+  );
 });
 
 socket.on("game_resumed", ({ playerName }) => {
@@ -1391,6 +1889,9 @@ socket.on("connect", () => {
         state.opponentName  = res.opponent.name;
         state.opponentColor = res.opponent.color;
       }
+      if (state.mode === "competitive" && res.timeRemaining != null) {
+        startCompetitiveCountdown(res.timeRemaining);
+      }
       renderWordList();
       updateScoreBar();
       updateHeader();
@@ -1408,6 +1909,11 @@ socket.on("connect", () => {
 socket.on("disconnect", () => {
   if (!state.gameActive) return;
   showReconnectingBanner("Reconnecting...");
+});
+
+socket.on("timer_warning", () => {
+  const el = document.getElementById("competitive-timer");
+  if (el) el.classList.add("warning");
 });
 
 // ── Pangram overlay ────────────────────────────────────────────────────────
@@ -1441,6 +1947,7 @@ function checkRankCelebrations(prevScore, playerName) {
         isMe ? "You found every word! You are the Queen Bee! 🌟" : `${playerName} found the last word — Queen Bee!`;
     } else {
       document.getElementById("queenbee-msg").textContent = "Every word found. You are both Queen Bees! 🌟";
+      setTimeout(() => socket.emit("end_game"), 3000);
     }
     document.getElementById("queenbee-overlay").classList.add("show");
   }
@@ -1454,18 +1961,184 @@ function closeQueenBee() {
   document.getElementById("queenbee-overlay").classList.remove("show");
 }
 
-// ── Mode toggle ────────────────────────────────────────────────────────────
-function toggleMode() {
-  socket.emit("toggle_mode", {}, (res) => {
-    if (!res.success) showMessage("Couldn't toggle mode", "error");
-  });
+// ── End game ──────────────────────────────────────────────────────────────
+function endGame() {
+  socket.emit("end_game");
 }
 
-// ── Warn on accidental refresh/close ──────────────────────────────────────
-window.addEventListener("beforeunload", (e) => {
+function playAgain() {
+  location.reload();
+}
+
+socket.on("game_ended", (stats) => {
+  state.gameActive = false;
+  clearInterval(competitiveTimer);
+  competitiveTimer = null;
+  const timerEl = document.getElementById("competitive-timer");
+  if (timerEl) { timerEl.classList.remove("warning"); timerEl.classList.remove("visible"); }
+  document.getElementById("queenbee-overlay").classList.remove("show");
+  document.getElementById("genius-overlay").classList.remove("show");
+  document.getElementById("pangram-overlay").classList.remove("show");
+  populateRecap(stats);
+  document.getElementById("recap-overlay").classList.add("show");
+});
+
+function populateRecap(stats) {
+  if (stats.mode === "competitive") {
+    populateCompetitiveRecap(stats);
+  } else {
+    populateCollaborativeRecap(stats);
+  }
+  populateSharedRecapSections(stats);
+}
+
+function populateCollaborativeRecap(stats) {
+  const { totalScore, maxScore: ms, rank, totalWords, playerStats } = stats;
+  const isQueenBee = rank === "Queen Bee";
+  document.getElementById("recap-emoji").textContent = isQueenBee ? "👑" : "🎉";
+  document.getElementById("recap-title").textContent = isQueenBee ? "Queen Bee!" : "Game Complete";
+  document.getElementById("recap-subtitle").textContent = `You reached ${rank} together`;
+
+  document.getElementById("recap-stats-row").innerHTML = `
+    <div class="recap-stat">
+      <div class="recap-stat-value">${totalScore}</div>
+      <div class="recap-stat-label">of ${ms} pts</div>
+    </div>
+    <div class="recap-stat">
+      <div class="recap-stat-value">${totalWords}</div>
+      <div class="recap-stat-label">Words Found</div>
+    </div>
+  `;
+
+  document.getElementById("recap-players-title").textContent = "Contributions";
+  const playersEl = document.getElementById("recap-players");
+  playersEl.innerHTML = "";
+  for (const p of playerStats) {
+    const row = document.createElement("div");
+    row.className = "recap-player-row";
+    row.innerHTML = `
+      <div class="recap-player-dot" style="background:${p.color}"></div>
+      <span class="recap-player-name">${p.name}</span>
+      <span class="recap-player-stats">${p.wordsFound} words · ${p.pointsContributed} pts</span>
+    `;
+    playersEl.appendChild(row);
+  }
+}
+
+function populateCompetitiveRecap(stats) {
+  const { winner, playerStats } = stats;
+  const isTie = winner === "tie";
+  document.getElementById("recap-emoji").textContent = isTie ? "🤝" : "🏆";
+  document.getElementById("recap-title").textContent = isTie ? "It's a Tie!" : `${winner} Wins!`;
+  document.getElementById("recap-subtitle").textContent = "Final scores";
+
+  const statsRow = document.getElementById("recap-stats-row");
+  statsRow.innerHTML = "";
+  for (const p of playerStats) {
+    const col = document.createElement("div");
+    col.className = "recap-stat";
+    col.innerHTML = `
+      <div class="recap-stat-value" style="color:${p.color}">${p.score}</div>
+      <div class="recap-stat-label" style="color:${p.color}">${p.name}</div>
+      <div class="recap-stat-label">${p.wordsFound} words</div>
+    `;
+    statsRow.appendChild(col);
+  }
+
+  document.getElementById("recap-players-title").textContent = "Final Scores";
+  const playersEl = document.getElementById("recap-players");
+  playersEl.innerHTML = "";
+  for (const p of playerStats) {
+    const isWinner = !isTie && p.name === winner;
+    const row = document.createElement("div");
+    row.className = "recap-player-row";
+    row.innerHTML = `
+      <div class="recap-player-dot" style="background:${p.color}"></div>
+      <span class="recap-player-name">${p.name}${isWinner ? " 🏆" : ""}</span>
+      <span class="recap-player-stats">${p.score} pts · ${p.wordsFound} words</span>
+    `;
+    playersEl.appendChild(row);
+  }
+}
+
+function populateSharedRecapSections({ pangrams, longestWord }) {
+  const pangramsDivider = document.getElementById("recap-pangrams-divider");
+  const pangramsSection = document.getElementById("recap-pangrams-section");
+  const pangramsList    = document.getElementById("recap-pangrams");
+  pangramsList.innerHTML = "";
+  const hasPangrams = pangrams && pangrams.length > 0;
+  pangramsDivider.style.display = hasPangrams ? "" : "none";
+  pangramsSection.style.display = hasPangrams ? "" : "none";
+  if (hasPangrams) {
+    for (const p of pangrams) {
+      const row = document.createElement("div");
+      row.className = "recap-pangram-row";
+      row.innerHTML = `
+        <span class="recap-pangram-chip" style="background:${p.color}">${p.word.toUpperCase()}</span>
+        <span class="recap-pangram-finder">found by ${p.playerName}</span>
+      `;
+      pangramsList.appendChild(row);
+    }
+  }
+
+  const longestDivider  = document.getElementById("recap-longest-divider");
+  const longestSection  = document.getElementById("recap-longest-section");
+  const longestEl       = document.getElementById("recap-longest-word");
+  longestDivider.style.display = longestWord ? "" : "none";
+  longestSection.style.display = longestWord ? "" : "none";
+  if (longestWord) {
+    longestEl.innerHTML = `
+      <span class="word-chip" style="background:${longestWord.color}">${longestWord.word}</span>
+      <span class="recap-longest-meta">${longestWord.word.length} letters · ${longestWord.playerName}</span>
+    `;
+  }
+}
+
+// ── Exit modal (desktop back-button interception) ─────────────────────────
+window.addEventListener("popstate", () => {
   if (!state.gameActive) return;
-  e.preventDefault();
-  e.returnValue = "";
+  // Re-push the guard so back doesn't actually navigate away
+  history.pushState({ gameGuard: true }, "", location.href);
+  showExitModal();
+});
+
+function showExitModal() {
+  document.getElementById("exit-modal-code").textContent = state.roomCode || "----";
+  document.getElementById("exit-modal").classList.add("show");
+}
+
+function closeExitModal() {
+  document.getElementById("exit-modal").classList.remove("show");
+}
+
+function confirmLeave() {
+  state.gameActive = false; // suppress any further guards
+  location.reload();
+}
+
+// ── Room code click-to-copy ────────────────────────────────────────────────
+document.getElementById("header-room-code").addEventListener("click", () => {
+  if (!state.roomCode) return;
+  navigator.clipboard?.writeText(state.roomCode).then(() => {
+    showMessage("Room code copied!", "success");
+  });
+});
+
+// ── Mobile room code toast (visibilitychange) ──────────────────────────────
+let toastTimer = null;
+
+document.addEventListener("visibilitychange", () => {
+  if (!state.gameActive || !state.roomCode) return;
+  const toast = document.getElementById("room-toast");
+  if (document.hidden) {
+    toast.textContent = `Room code: ${state.roomCode} — use "Rejoin a game" to return`;
+    toast.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove("show"), 5000);
+  } else {
+    clearTimeout(toastTimer);
+    toast.classList.remove("show");
+  }
 });
 
 </script>
