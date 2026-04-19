@@ -747,6 +747,22 @@
     .end-game-btn.visible { display: block; }
     .end-game-btn:hover { color: #888; border-color: #aaa; }
 
+    .resign-btn {
+      display: none;
+      margin-top: 6px;
+      padding: 6px 18px;
+      border-radius: 20px;
+      border: 1px solid #ddd;
+      background: transparent;
+      font-family: "Helvetica Neue", sans-serif;
+      font-size: 12px;
+      color: #bbb;
+      cursor: pointer;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .resign-btn.visible { display: block; }
+    .resign-btn:hover { color: #c0392b; border-color: #e8a090; }
+
     /* ── Game recap overlay ──────────────────────────────────────────── */
     #recap-overlay {
       display: none;
@@ -1130,6 +1146,7 @@
         <button class="ctrl-btn submit" id="submit-btn" onclick="submitWord()">Enter</button>
       </div>
       <button class="end-game-btn" id="end-game-btn" onclick="endGame()">End Game</button>
+      <button class="resign-btn" id="resign-btn" onclick="resign()">Resign</button>
     </div>
 
     <div class="word-list-area">
@@ -1442,8 +1459,10 @@ function startGame(options = {}) {
 }
 
 function updateEndGameButton() {
-  const btn = document.getElementById("end-game-btn");
-  if (btn) btn.classList.toggle("visible", state.mode === "collaborative");
+  const endBtn = document.getElementById("end-game-btn");
+  if (endBtn) endBtn.classList.toggle("visible", state.mode === "collaborative");
+  const resignBtn = document.getElementById("resign-btn");
+  if (resignBtn) resignBtn.classList.toggle("visible", state.mode === "competitive");
 }
 
 // ── Honeycomb ──────────────────────────────────────────────────────────────
@@ -1961,9 +1980,14 @@ function closeQueenBee() {
   document.getElementById("queenbee-overlay").classList.remove("show");
 }
 
-// ── End game ──────────────────────────────────────────────────────────────
+// ── End game / Resign ──────────────────────────────────────────────────────
 function endGame() {
   socket.emit("end_game");
+}
+
+function resign() {
+  if (!window.confirm("Are you sure? This will end the game for both players.")) return;
+  socket.emit("resign");
 }
 
 function playAgain() {
@@ -2026,11 +2050,11 @@ function populateCollaborativeRecap(stats) {
 }
 
 function populateCompetitiveRecap(stats) {
-  const { winner, playerStats } = stats;
+  const { winner, playerStats, resigned } = stats;
   const isTie = winner === "tie";
   document.getElementById("recap-emoji").textContent = isTie ? "🤝" : "🏆";
   document.getElementById("recap-title").textContent = isTie ? "It's a Tie!" : `${winner} Wins!`;
-  document.getElementById("recap-subtitle").textContent = "Final scores";
+  document.getElementById("recap-subtitle").textContent = resigned ? `${resigned} resigned` : "Final scores";
 
   const statsRow = document.getElementById("recap-stats-row");
   statsRow.innerHTML = "";

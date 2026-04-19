@@ -96,7 +96,7 @@ function createRoom(code, puzzle, puzzleType) {
 
 // ── Competitive timer ─────────────────────────────────────────────────────────
 
-const COMPETITIVE_DURATION_S = 10 * 60; // 600 seconds
+const COMPETITIVE_DURATION_S = 5 * 60; // 300 seconds
 
 function startCompetitiveTimer(room) {
   room.timeRemaining = COMPETITIVE_DURATION_S;
@@ -116,7 +116,7 @@ function startCompetitiveTimer(room) {
   }, 1000);
 }
 
-function endCompetitiveGame(room) {
+function endCompetitiveGame(room, resigningPlayer = null) {
   const words = Object.values(room.foundWords);
 
   const playerMap = {};
@@ -135,16 +135,21 @@ function endCompetitiveGame(room) {
   }
 
   const playerStats = Object.values(playerMap);
-  const [p1, p2] = playerStats;
   let winner;
-  if (!p2) {
-    winner = p1.name;
-  } else if (p1.score > p2.score) {
-    winner = p1.name;
-  } else if (p2.score > p1.score) {
-    winner = p2.name;
+  if (resigningPlayer) {
+    const opponent = playerStats.find(p => p.name !== resigningPlayer);
+    winner = opponent ? opponent.name : resigningPlayer;
   } else {
-    winner = "tie";
+    const [p1, p2] = playerStats;
+    if (!p2) {
+      winner = p1.name;
+    } else if (p1.score > p2.score) {
+      winner = p1.name;
+    } else if (p2.score > p1.score) {
+      winner = p2.name;
+    } else {
+      winner = "tie";
+    }
   }
 
   const pangrams = words
@@ -159,7 +164,15 @@ function endCompetitiveGame(room) {
     }
   }
 
-  io.to(room.code).emit("game_ended", { mode: "competitive", winner, playerStats, pangrams, longestWord });
+  console.log(`Room ${room.code} competitive game ended — winner: ${winner}${resigningPlayer ? ` (${resigningPlayer} resigned)` : ""}`);
+  io.to(room.code).emit("game_ended", {
+    mode: "competitive",
+    winner,
+    resigned: resigningPlayer || null,
+    playerStats,
+    pangrams,
+    longestWord,
+  });
   delete rooms[room.code];
 }
 
@@ -504,6 +517,23 @@ io.on("connection", (socket) => {
 
     console.log(`Room ${room.code} ended by ${room.players[socket.id]?.name} — ${totalWords} words, ${totalScore} pts, rank: ${rank}`);
     delete rooms[room.code];
+  });
+
+  // ── Resign ─────────────────────────────────────────────────────────────────
+  socket.on("resign", () => {
+    const room = getRoomForSocket(socket.id);
+    if (!room || !room.gameStarted || room.mode !== "competitive") return;
+
+    const player = room.players[socket.id];
+    if (!player) return;
+
+    if (room.gameTimer) {
+      clearInterval(room.gameTimer);
+      room.gameTimer = null;
+    }
+
+    console.log(`${player.name} resigned in room ${room.code}`);
+    endCompetitiveGame(room, player.name);
   });
 
   // ── Toggle mode ────────────────────────────────────────────────────────────
