@@ -14,7 +14,7 @@ const MIN_WORD_LENGTH = 4;
 const PROFANITY_BLOCKLIST = new Set([
   "fuck", "shit", "cunt", "cock", "dick", "pussy", "ass", "bitch",
   "nigger", "nigga", "faggot", "fag", "slut", "whore", "bastard",
-  "piss", "tits", "twat", "wank", "spic", "kike", "chink"
+  "piss", "tits", "twat", "wank", "spic", "kike", "chink", "coon"
 ]);
 
 // Common English words frequency approximation

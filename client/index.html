@@ -1025,6 +1025,114 @@
     }
     .exit-modal-leave:hover { border-color: #bbb; color: #666; }
 
+    /* ── About overlay ──────────────────────────────────────────────── */
+    #about-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 300;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    #about-overlay.show { display: flex; }
+
+    .about-card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 36px 40px;
+      max-width: 460px;
+      width: 100%;
+      max-height: 88vh;
+      overflow-y: auto;
+      animation: pop 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      font-family: "Helvetica Neue", sans-serif;
+    }
+
+    .about-close-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .about-title {
+      font-size: 22px;
+      font-weight: 700;
+      font-family: "New York", Georgia, serif;
+    }
+
+    .about-close-btn {
+      background: none;
+      border: none;
+      font-size: 22px;
+      cursor: pointer;
+      color: #aaa;
+      line-height: 1;
+      padding: 0 4px;
+    }
+    .about-close-btn:hover { color: #555; }
+
+    .about-section-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #aaa;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .about-body {
+      font-size: 14px;
+      color: #444;
+      line-height: 1.65;
+    }
+
+    .about-body p + p { margin-top: 10px; }
+
+    .about-mode-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      font-size: 14px;
+      color: #444;
+      line-height: 1.6;
+    }
+
+    .about-mode-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+
+    .about-mode-name {
+      font-weight: 700;
+      color: #1a1a1a;
+    }
+
+    .about-divider { height: 1px; background: #e0e0e0; }
+
+    .about-contact {
+      font-size: 14px;
+      color: #444;
+      line-height: 1.65;
+    }
+
+    .about-link {
+      background: none;
+      border: none;
+      padding: 0;
+      color: #1a6fa8;
+      font-size: 13px;
+      font-family: "Helvetica Neue", sans-serif;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    .about-link:hover { color: #0d4f7a; }
+
+    @media (max-width: 480px) {
+      .about-card { padding: 28px 24px; }
+    }
+
     /* ── Mobile room code toast ──────────────────────────────────────── */
     #room-toast {
       display: none;
@@ -1061,6 +1169,8 @@
     <div class="lobby-subtitle" style="margin-top:8px">Two-player edition</div>
   </div>
 
+  <button class="about-link" onclick="openAbout()" style="margin-bottom:-16px">About this game</button>
+
   <div class="lobby-card">
     <h2>Create a new game</h2>
     <input id="create-name" class="lobby-input" placeholder="Your name" maxlength="20">
@@ -1080,7 +1190,7 @@
         <div class="mode-card-pills">
           <span class="mode-card-pill">Race to find words</span>
           <span class="mode-card-pill">Individual scores</span>
-          <span class="mode-card-pill">10 min timer</span>
+          <span class="mode-card-pill">5 min timer</span>
         </div>
       </div>
     </div>
@@ -1107,6 +1217,7 @@
   <button class="lobby-btn copy-invite-btn" id="copy-invite-btn" onclick="copyInvite()">Copy Invite</button>
   <div class="pulse"></div>
   <div class="waiting-label">Waiting for opponent to join...</div>
+  <button class="about-link" onclick="openAbout()" style="margin-top:8px">About this game</button>
 </div>
 
 <!-- ── Game ───────────────────────────────────────────────────────────────── -->
@@ -1247,6 +1358,60 @@
 
 <!-- ── Mobile room code toast ─────────────────────────────────────────────── -->
 <div id="room-toast"></div>
+
+<!-- ── About overlay ──────────────────────────────────────────────────────── -->
+<div id="about-overlay">
+  <div class="about-card">
+
+    <div class="about-close-row">
+      <div class="about-title">About this game</div>
+      <button class="about-close-btn" onclick="closeAbout()" aria-label="Close">✕</button>
+    </div>
+
+    <!-- PERSONAL STORY: Page will fill this in -->
+    <div>
+      <div class="about-section-title">Our story</div>
+      <div class="about-body">
+        <p id="about-story">[Story goes here]</p>
+      </div>
+    </div>
+
+    <div class="about-divider"></div>
+
+    <div>
+      <div class="about-section-title">How to play</div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+
+        <div class="about-mode-row">
+          <div class="about-mode-icon">🤝</div>
+          <div>
+            <div class="about-mode-name">Collaborative</div>
+            Work together toward a shared score with no time limit. Either player can end the game whenever you're ready. Reaching Queen Bee (every word found) ends the game naturally.
+          </div>
+        </div>
+
+        <div class="about-mode-row">
+          <div class="about-mode-icon">⚔️</div>
+          <div>
+            <div class="about-mode-name">Competitive</div>
+            Race to find words before your opponent. You have 5 minutes — the first player to spot a word claims the points. Highest score when time runs out wins.
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="about-divider"></div>
+
+    <div>
+      <div class="about-section-title">Contact</div>
+      <div class="about-contact">
+        Questions, feedback, or just want to say hi? Reach us at <span id="contact-email"></span>.
+      </div>
+    </div>
+
+  </div>
+</div>
 
 <!-- ── Footer ────────────────────────────────────────────────────────────── -->
 <footer style="
@@ -2147,6 +2312,23 @@ document.getElementById("header-room-code").addEventListener("click", () => {
     showMessage("Room code copied!", "success");
   });
 });
+
+// ── About overlay ─────────────────────────────────────────────────────────
+function openAbout() {
+  document.getElementById("about-overlay").classList.add("show");
+}
+
+function closeAbout() {
+  document.getElementById("about-overlay").classList.remove("show");
+}
+
+// Assemble contact email from parts to avoid plain-text harvesting
+(function() {
+  const u = "twoplayerspellingbee";
+  const d = "gmail.com";
+  document.getElementById("contact-email").innerHTML =
+    '<a href="mailto:' + u + '@' + d + '">' + u + ' [at] ' + d + '</a>';
+})();
 
 // ── Mobile room code toast (visibilitychange) ──────────────────────────────
 let toastTimer = null;
