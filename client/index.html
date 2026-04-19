@@ -1377,14 +1377,14 @@
         my phone will autocomplete the text "Pangram hint?" because he and I sent that one back and forth to 
         each other so many times. Our text exchanges spanned hours at a time - I would leave for work and come 
         back to it at the end of the day and we would pick up where we left off. Sometimes it's the casual and
-        everyday interactions that end up meaning the most. 
-        <br>
+        everyday interactions that end up meaning the most.
+        <br><br>
         After he died, I found myself thinking about a version of the game that would honor that spirit of fun
         and easy collaboration, so my idea for this game started with what's called "collaborative mode" - in that mode you
         can play all day and work together to try to get to Genius or even find all the words in Queen Bee. Sometimes you
         might feel like a quick game and want to keep score, which is why I developed competitive mode with a 5-minute
-        timer to keep the game quick and fun. 
-        <br>
+        timer to keep the game quick and fun.
+        <br><br>
         I hope you enjoy playing with your friends and family and making memories together!
         </p>
       </div>
@@ -1422,6 +1422,12 @@
       <div class="about-contact">
         Questions, feedback, or just want to say hi? Reach us at <span id="contact-email"></span>.
       </div>
+    </div>
+
+    <div class="about-divider"></div>
+
+    <div class="about-contact">
+      Send me your own two-player spelling bee stories, suggestions, and feedback at <span id="contact-email-closing"></span>
     </div>
 
   </div>
@@ -2340,8 +2346,9 @@ function closeAbout() {
 (function() {
   const u = "twoplayerspellingbee";
   const d = "gmail.com";
-  document.getElementById("contact-email").innerHTML =
-    '<a href="mailto:' + u + '@' + d + '">' + u + ' [at] ' + d + '</a>';
+  const link = '<a href="mailto:' + u + '@' + d + '">' + u + ' [at] ' + d + '</a>';
+  document.getElementById("contact-email").innerHTML = link;
+  document.getElementById("contact-email-closing").innerHTML = link;
 })();
 
 // ── Mobile room code toast (visibilitychange) ──────────────────────────────
