@@ -1367,15 +1367,17 @@
       <div class="about-title">About this game</div>
       <button class="about-close-btn" onclick="closeAbout()" aria-label="Close">✕</button>
     </div>
+
+    <div>
       <div class="about-section-title">Our story</div>
       <div class="about-body">
         <p id="about-story">Before my father died, we had a daily ritual that involved playing the New York Times Spelling Bee
-        game together every morning. I have many keepsakes of my father and our relationship, some big and 
+        game together every morning. I have many keepsakes of my father and our relationship, some big and
         some small, but one of my fondest keepsakes is actually quite mundane - screenshots of the many text
         messages we would send to each other while playing Spelling Bee. We would text triumphantly when one
         of us found a pangram, we would make up words and laugh about them - CATFART, for example. To this day,
-        my phone will autocomplete the text "Pangram hint?" because he and I sent that one back and forth to 
-        each other so many times. Our text exchanges spanned hours at a time - I would leave for work and come 
+        my phone will autocomplete the text "Pangram hint?" because he and I sent that one back and forth to
+        each other so many times. Our text exchanges spanned hours at a time - I would leave for work and come
         back to it at the end of the day and we would pick up where we left off. Sometimes it's the casual and
         everyday interactions that end up meaning the most.
         <br><br>
@@ -1386,6 +1388,8 @@
         timer to keep the game quick and fun.
         <br><br>
         I hope you enjoy playing with your friends and family and making memories together!
+        <br><br>
+        Send me your own two-player spelling bee stories, suggestions, and feedback at <span id="contact-email"></span>
         </p>
       </div>
     </div>
@@ -1413,21 +1417,6 @@
         </div>
 
       </div>
-    </div>
-
-    <div class="about-divider"></div>
-
-    <div>
-      <div class="about-section-title">Contact</div>
-      <div class="about-contact">
-        Questions, feedback, or just want to say hi? Reach us at <span id="contact-email"></span>.
-      </div>
-    </div>
-
-    <div class="about-divider"></div>
-
-    <div class="about-contact">
-      Send me your own two-player spelling bee stories, suggestions, and feedback at <span id="contact-email-closing"></span>
     </div>
 
   </div>
@@ -2346,9 +2335,8 @@ function closeAbout() {
 (function() {
   const u = "twoplayerspellingbee";
   const d = "gmail.com";
-  const link = '<a href="mailto:' + u + '@' + d + '">' + u + ' [at] ' + d + '</a>';
-  document.getElementById("contact-email").innerHTML = link;
-  document.getElementById("contact-email-closing").innerHTML = link;
+  document.getElementById("contact-email").innerHTML =
+    '<a href="mailto:' + u + '@' + d + '" target="_blank" rel="noopener noreferrer">' + u + ' [at] ' + d + '</a>';
 })();
 
 // ── Mobile room code toast (visibilitychange) ──────────────────────────────

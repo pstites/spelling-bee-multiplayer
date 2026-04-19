@@ -106,7 +106,7 @@ function shuffle(arr, rng) {
 // ── Main generator ────────────────────────────────────────────────────────────
 
 function generatePuzzle(seed) {
-  if (!seed) seed = new Date().toISOString().slice(0, 10);
+  if (!seed) seed = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date());
 
   const wordlist = loadWordlist();
 

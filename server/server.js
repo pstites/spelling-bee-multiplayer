@@ -24,7 +24,9 @@ let puzzleCache = {
 };
 
 function getTodayString() {
-  return new Date().toISOString().slice(0, 10);
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/New_York'
+  }).format(new Date());
 }
 
 const { generatePuzzle } = require("./generator");
